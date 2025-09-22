@@ -108,12 +108,14 @@ export default function VideoRecorder({
       // Check permissions again before recording
       if (!cameraPermission?.granted) {
         console.log('Camera permission not granted, requesting...');
-        await requestCameraPermission();
+        const cameraResult = await requestCameraPermission();
+        console.log('Camera permission request result:', cameraResult);
       }
       
       if (!microphonePermission?.granted) {
         console.log('Microphone permission not granted, requesting...');
-        await requestMicrophonePermission();
+        const micResult = await requestMicrophonePermission();
+        console.log('Microphone permission request result:', micResult);
       }
       
       // Verify permissions were granted
@@ -122,7 +124,7 @@ export default function VideoRecorder({
           camera: cameraPermission?.granted, 
           microphone: microphonePermission?.granted 
         });
-        Alert.alert('Permission Error', 'Camera and microphone permissions are required to record videos.');
+        Alert.alert('Permission Error', 'Camera and microphone permissions are required to record videos. Please grant these permissions in your device settings.');
         return;
       }
       
@@ -292,6 +294,7 @@ export default function VideoRecorder({
   };
 
   if (!cameraPermission || !microphonePermission) {
+    console.log('Permissions not initialized yet');
     return null;
   }
 
@@ -306,9 +309,11 @@ export default function VideoRecorder({
           <Text style={styles.permissionText}>
             We need access to your camera and microphone to record exercise videos with audio
           </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={() => {
-            requestCameraPermission();
-            requestMicrophonePermission();
+          <TouchableOpacity style={styles.permissionButton} onPress={async () => {
+            console.log('Requesting camera and microphone permissions...');
+            const cameraResult = await requestCameraPermission();
+            const micResult = await requestMicrophonePermission();
+            console.log('Permission request results:', { camera: cameraResult, microphone: micResult });
           }}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
