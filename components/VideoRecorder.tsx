@@ -10,7 +10,7 @@ import {
   Switch,
   ScrollView,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Video, ResizeMode } from 'expo-av';
 import { 
   Camera, 
@@ -68,7 +68,8 @@ export default function VideoRecorder({
   const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const videoRef = useRef<Video>(null);
   
@@ -104,6 +105,27 @@ export default function VideoRecorder({
     if (!cameraRef.current) return;
 
     try {
+      // Check permissions again before recording
+      if (!cameraPermission?.granted) {
+        console.log('Camera permission not granted, requesting...');
+        await requestCameraPermission();
+      }
+      
+      if (!microphonePermission?.granted) {
+        console.log('Microphone permission not granted, requesting...');
+        await requestMicrophonePermission();
+      }
+      
+      // Verify permissions were granted
+      if (!cameraPermission?.granted || !microphonePermission?.granted) {
+        console.error('Required permissions not granted:', { 
+          camera: cameraPermission?.granted, 
+          microphone: microphonePermission?.granted 
+        });
+        Alert.alert('Permission Error', 'Camera and microphone permissions are required to record videos.');
+        return;
+      }
+      
       setIsRecording(true);
       setBarPath([]);
       setBodyKeypoints([]);
@@ -120,23 +142,29 @@ export default function VideoRecorder({
         startFormTracking();
       }
 
+      console.log('Calling recordAsync...');
       const video = await cameraRef.current.recordAsync({
         maxDuration: 60, // 60 seconds max for form analysis
       });
       
       if (video) {
-        console.log('Video recorded:', video.uri);
+        console.log('Video recorded successfully:', video.uri);
         setRecordedVideo(video.uri);
         
         // Analyze form if enabled
         if (trackingSettings.formAnalysis) {
           await analyzeForm(video.uri);
         }
+      } else {
+        console.error('No video returned from recordAsync');
       }
       setIsRecording(false);
     } catch (error) {
       console.error('Error recording video:', error);
-      Alert.alert('Recording Error', 'Failed to record video. Please try again.');
+      // More detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log('Error details:', errorMessage);
+      Alert.alert('Recording Error', `Failed to record video: ${errorMessage}. Please try again.`);
       setIsRecording(false);
     }
   };
@@ -263,20 +291,25 @@ export default function VideoRecorder({
     }
   };
 
-  if (!permission) {
+  if (!cameraPermission || !microphonePermission) {
     return null;
   }
 
-  if (!permission.granted) {
+  const hasAllPermissions = cameraPermission?.granted && microphonePermission?.granted;
+  
+  if (!hasAllPermissions) {
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
         <View style={styles.permissionContainer}>
           <Camera color="#6b7280" size={64} />
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+          <Text style={styles.permissionTitle}>Camera & Microphone Permissions Required</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to record exercise videos
+            We need access to your camera and microphone to record exercise videos with audio
           </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <TouchableOpacity style={styles.permissionButton} onPress={() => {
+            requestCameraPermission();
+            requestMicrophonePermission();
+          }}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
