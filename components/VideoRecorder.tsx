@@ -102,7 +102,12 @@ export default function VideoRecorder({
   };
 
   const startRecording = async () => {
-    if (!cameraRef.current) return;
+    console.log('Start recording function called');
+    if (!cameraRef.current) {
+      console.error('Camera reference is not available');
+      Alert.alert('Error', 'Camera is not ready. Please try again.');
+      return;
+    }
 
     try {
       // Check permissions again before recording
@@ -110,12 +115,20 @@ export default function VideoRecorder({
         console.log('Camera permission not granted, requesting...');
         const cameraResult = await requestCameraPermission();
         console.log('Camera permission request result:', cameraResult);
+        if (!cameraResult.granted) {
+          Alert.alert('Permission Error', 'Camera permission is required to record videos.');
+          return;
+        }
       }
       
       if (!microphonePermission?.granted) {
         console.log('Microphone permission not granted, requesting...');
         const micResult = await requestMicrophonePermission();
         console.log('Microphone permission request result:', micResult);
+        if (!micResult.granted) {
+          Alert.alert('Permission Error', 'Microphone permission is required to record videos.');
+          return;
+        }
       }
       
       // Verify permissions were granted
@@ -128,28 +141,29 @@ export default function VideoRecorder({
         return;
       }
       
+      if (Platform.OS === 'web') {
+        Alert.alert('Not Supported', 'Video recording is not available on web. Please use the mobile app.');
+        return;
+      }
+
+      console.log('Setting recording state to true');
       setIsRecording(true);
       setBarPath([]);
       setBodyKeypoints([]);
       console.log('Starting video recording with form tracking...');
       
-      if (Platform.OS === 'web') {
-        Alert.alert('Not Supported', 'Video recording is not available on web. Please use the mobile app.');
-        setIsRecording(false);
-        return;
-      }
-
       // Start form tracking if enabled
       if (trackingSettings.barPathTracking || trackingSettings.bodyAlignment) {
         startFormTracking();
       }
 
-      console.log('Calling recordAsync...');
+      console.log('Calling recordAsync on camera ref:', cameraRef.current);
       const video = await cameraRef.current.recordAsync({
         maxDuration: 60, // 60 seconds max for form analysis
       });
       
-      if (video) {
+      console.log('Recording completed, video result:', video);
+      if (video && video.uri) {
         console.log('Video recorded successfully:', video.uri);
         setRecordedVideo(video.uri);
         
@@ -158,7 +172,8 @@ export default function VideoRecorder({
           await analyzeForm(video.uri);
         }
       } else {
-        console.error('No video returned from recordAsync');
+        console.error('No video returned from recordAsync or missing URI');
+        Alert.alert('Recording Error', 'Failed to save the recorded video. Please try again.');
       }
       setIsRecording(false);
     } catch (error) {
@@ -172,13 +187,27 @@ export default function VideoRecorder({
   };
 
   const stopRecording = async () => {
-    if (!cameraRef.current || !isRecording) return;
+    console.log('Stop recording function called, isRecording:', isRecording);
+    if (!cameraRef.current) {
+      console.error('Camera reference is not available for stopping recording');
+      setIsRecording(false);
+      return;
+    }
+    
+    if (!isRecording) {
+      console.log('Not currently recording, nothing to stop');
+      return;
+    }
 
     try {
       console.log('Stopping video recording...');
       await cameraRef.current.stopRecording();
+      console.log('Video recording stopped successfully');
     } catch (error) {
       console.error('Error stopping recording:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log('Stop recording error details:', errorMessage);
+      Alert.alert('Error', `Failed to stop recording: ${errorMessage}`);
       setIsRecording(false);
     }
   };
@@ -295,7 +324,15 @@ export default function VideoRecorder({
 
   if (!cameraPermission || !microphonePermission) {
     console.log('Permissions not initialized yet');
-    return null;
+    // Instead of returning null, show a loading state
+    return (
+      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+        <View style={styles.permissionContainer}>
+          <Text style={styles.permissionTitle}>Loading Camera...</Text>
+          <Text style={styles.permissionText}>Please wait while we initialize the camera</Text>
+        </View>
+      </Modal>
+    );
   }
 
   const hasAllPermissions = cameraPermission?.granted && microphonePermission?.granted;
@@ -436,6 +473,7 @@ export default function VideoRecorder({
               style={styles.camera}
               facing={facing}
               mode="video"
+              testID="camera-view"
             >
               {/* Recording indicator */}
               {isRecording && (
@@ -563,6 +601,7 @@ export default function VideoRecorder({
                   isRecording && styles.recordButtonActive
                 ]}
                 onPress={isRecording ? stopRecording : startRecording}
+                testID="record-button"
               >
                 {isRecording ? (
                   <Square color="#ffffff" size={32} />
