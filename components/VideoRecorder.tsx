@@ -56,6 +56,14 @@ interface TrackingSettings {
   realTimeOverlay: boolean;
 }
 
+interface BarTarget {
+  id: string;
+  name: string;
+  color: string;
+  position: { x: number; y: number } | null;
+  isSelected: boolean;
+}
+
 export default function VideoRecorder({
   visible,
   onClose,
@@ -81,9 +89,22 @@ export default function VideoRecorder({
     realTimeOverlay: true,
   });
   const [barPath, setBarPath] = useState<{ x: number; y: number; timestamp: number }[]>([]);
+  const [currentVelocity, setCurrentVelocity] = useState<number>(0);
+  const [repCount, setRepCount] = useState<number>(0);
   const [bodyKeypoints, setBodyKeypoints] = useState<any[]>([]);
   const [formAnalysis, setFormAnalysis] = useState<FormAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  
+  // Bar selection state
+  const [showBarSelection, setShowBarSelection] = useState<boolean>(false);
+  const [barTargets, setBarTargets] = useState<BarTarget[]>([
+    { id: '1', name: 'Barbell', color: '#22c55e', position: null, isSelected: true },
+    { id: '2', name: 'Dumbbell L', color: '#3b82f6', position: null, isSelected: false },
+    { id: '3', name: 'Dumbbell R', color: '#f59e0b', position: null, isSelected: false },
+    { id: '4', name: 'Kettlebell', color: '#ef4444', position: null, isSelected: false },
+  ]);
+  const [isSettingBarPosition, setIsSettingBarPosition] = useState<boolean>(false);
+  const [selectedBarId, setSelectedBarId] = useState<string>('1');
 
   const resetState = () => {
     setIsRecording(false);
@@ -94,6 +115,12 @@ export default function VideoRecorder({
     setFormAnalysis(null);
     setIsAnalyzing(false);
     setShowSettings(false);
+    setShowBarSelection(false);
+    setIsSettingBarPosition(false);
+    setCurrentVelocity(0);
+    setRepCount(0);
+    // Reset bar positions but keep selection
+    setBarTargets(prev => prev.map(bar => ({ ...bar, position: null })));
   };
 
   const handleClose = () => {
@@ -106,6 +133,20 @@ export default function VideoRecorder({
     if (!cameraRef.current) {
       console.error('Camera reference is not available');
       Alert.alert('Error', 'Camera is not ready. Please try again.');
+      return;
+    }
+
+    // Check if bar position is set when bar tracking is enabled
+    const selectedBar = barTargets.find(bar => bar.isSelected);
+    if (trackingSettings.barPathTracking && (!selectedBar || !selectedBar.position)) {
+      Alert.alert(
+        'Set Bar Position', 
+        'Please set the position of the bar you want to track before recording. Tap the settings icon and select "Select Bar" to set the position.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Set Position', onPress: () => setShowBarSelection(true) }
+        ]
+      );
       return;
     }
 
@@ -225,6 +266,8 @@ export default function VideoRecorder({
 
   const startFormTracking = () => {
     console.log('Starting form tracking...');
+    const selectedBar = barTargets.find(bar => bar.isSelected);
+    
     // Simulate real-time tracking (in a real app, this would use computer vision)
     const trackingInterval = setInterval(() => {
       if (!isRecording) {
@@ -233,19 +276,18 @@ export default function VideoRecorder({
       }
       
       // Simulate realistic bar path tracking for weightlifting
-      if (trackingSettings.barPathTracking) {
-        // Create more realistic bar path simulation for exercises like squats or deadlifts
-        // This simulates a bar moving in a more predictable pattern
+      if (trackingSettings.barPathTracking && selectedBar?.position) {
+        // Create more realistic bar path simulation based on selected bar position
         const time = Date.now();
         const cyclePosition = (time % 4000) / 4000; // 0 to 1 over 4 seconds
         
-        // Calculate x position with slight horizontal drift (common in lifts)
-        const baseX = 180; // Center position
-        const xVariation = Math.sin(cyclePosition * Math.PI * 2) * 15; // Slight horizontal movement
+        // Use the selected bar's initial position as the base
+        const baseX = selectedBar.position.x;
+        const baseY = selectedBar.position.y;
         
-        // Calculate y position with more vertical movement (up/down for the lift)
-        const baseY = 250; // Middle position
-        const yVariation = Math.sin(cyclePosition * Math.PI) * 100; // More pronounced vertical movement
+        // Calculate movement relative to the selected position
+        const xVariation = Math.sin(cyclePosition * Math.PI * 2) * 15; // Slight horizontal movement
+        const yVariation = Math.sin(cyclePosition * Math.PI) * 80; // Vertical movement for the lift
         
         const newPoint = {
           x: baseX + xVariation,
@@ -253,7 +295,23 @@ export default function VideoRecorder({
           timestamp: time,
         };
         
-        setBarPath(prev => [...prev.slice(-30), newPoint]); // Keep last 30 points for a longer trail
+        setBarPath(prev => {
+          const newPath = [...prev.slice(-30), newPoint];
+          
+          // Calculate velocity if we have enough points
+          if (newPath.length >= 2) {
+            const lastPoint = newPath[newPath.length - 2];
+            const distance = Math.sqrt(
+              Math.pow(newPoint.x - lastPoint.x, 2) + 
+              Math.pow(newPoint.y - lastPoint.y, 2)
+            );
+            const timeDiff = (newPoint.timestamp - lastPoint.timestamp) / 1000; // Convert to seconds
+            const velocity = distance / timeDiff / 100; // Convert to m/s (rough approximation)
+            setCurrentVelocity(velocity);
+          }
+          
+          return newPath;
+        });
       }
       
       // Simulate body keypoint detection
@@ -261,7 +319,7 @@ export default function VideoRecorder({
         const keypoints = generateMockKeypoints();
         setBodyKeypoints(keypoints);
       }
-    }, 100); // Update every 100ms
+    }, 50); // Update every 50ms for smoother tracking
   };
 
   const generateMockKeypoints = () => {
@@ -318,6 +376,40 @@ export default function VideoRecorder({
       ...prev,
       [setting]: !prev[setting]
     }));
+  };
+
+  const selectBar = (barId: string) => {
+    setBarTargets(prev => prev.map(bar => ({
+      ...bar,
+      isSelected: bar.id === barId
+    })));
+    setSelectedBarId(barId);
+  };
+
+  const handleCameraPress = (event: any) => {
+    if (!isSettingBarPosition) return;
+    
+    const { locationX, locationY } = event.nativeEvent;
+    const selectedBar = barTargets.find(bar => bar.isSelected);
+    
+    if (selectedBar) {
+      setBarTargets(prev => prev.map(bar => 
+        bar.id === selectedBar.id 
+          ? { ...bar, position: { x: locationX, y: locationY } }
+          : bar
+      ));
+      setIsSettingBarPosition(false);
+      setShowBarSelection(false);
+    }
+  };
+
+  const startBarPositioning = () => {
+    setIsSettingBarPosition(true);
+  };
+
+  const cancelBarPositioning = () => {
+    setIsSettingBarPosition(false);
+    setShowBarSelection(false);
   };
 
   const retakeVideo = () => {
@@ -408,6 +500,15 @@ export default function VideoRecorder({
           <View style={styles.settingsPanel}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.settingsRow}>
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => setShowBarSelection(true)}
+                >
+                  <Target color="#6366f1" size={20} />
+                  <Text style={styles.settingLabel}>Select Bar</Text>
+                  <View style={[styles.barIndicator, { backgroundColor: barTargets.find(b => b.isSelected)?.color || '#6366f1' }]} />
+                </TouchableOpacity>
+                
                 <View style={styles.settingItem}>
                   <Target color="#6366f1" size={20} />
                   <Text style={styles.settingLabel}>Bar Path</Text>
@@ -482,13 +583,19 @@ export default function VideoRecorder({
               </TouchableOpacity>
             </View>
           ) : (
-            <CameraView
-              ref={cameraRef}
-              style={styles.camera}
-              facing={facing}
-              mode="video"
-              testID="camera-view"
+            <TouchableOpacity
+              style={styles.cameraWrapper}
+              onPress={handleCameraPress}
+              activeOpacity={1}
+              disabled={!isSettingBarPosition}
             >
+              <CameraView
+                ref={cameraRef}
+                style={styles.camera}
+                facing={facing}
+                mode="video"
+                testID="camera-view"
+              >
               {/* Recording indicator */}
               {isRecording && (
                 <View style={styles.recordingIndicator}>
@@ -500,17 +607,43 @@ export default function VideoRecorder({
                 </View>
               )}
               
-              {/* Metrics display when recording - similar to reference image */}
+              {/* Live metrics display when recording */}
               {isRecording && trackingSettings.barPathTracking && barPath.length > 0 && (
                 <View style={styles.metricsOverlay}>
                   <View style={styles.weightDisplay}>
                     <Text style={styles.weightValue}>45kg</Text>
-                    <Text style={styles.weightRep}>1/3</Text>
+                    <Text style={styles.weightRep}>{repCount + 1}/3</Text>
                   </View>
                   <View style={styles.metricBox}>
-                    <Text style={styles.metricValue}>1.03</Text>
+                    <Text style={styles.metricValue}>{currentVelocity.toFixed(2)}</Text>
                     <Text style={styles.metricLabel}>M. Velocity (M/S)</Text>
                   </View>
+                  <View style={styles.metricBox}>
+                    <Text style={styles.metricValue}>{barTargets.find(b => b.isSelected)?.name || 'Bar'}</Text>
+                    <Text style={styles.metricLabel}>Tracking</Text>
+                  </View>
+                </View>
+              )}
+              
+              {/* Bar position indicators when setting up */}
+              {!isRecording && (
+                <View style={styles.overlayContainer}>
+                  <Svg style={styles.overlay} width="100%" height="100%">
+                    {barTargets.map(bar => (
+                      bar.position && (
+                        <Circle
+                          key={`bar-${bar.id}`}
+                          cx={bar.position.x}
+                          cy={bar.position.y}
+                          r={bar.isSelected ? "16" : "12"}
+                          fill={bar.color}
+                          stroke="#ffffff"
+                          strokeWidth={bar.isSelected ? "3" : "2"}
+                          opacity={bar.isSelected ? 1 : 0.7}
+                        />
+                      )
+                    ))}
+                  </Svg>
                 </View>
               )}
               
@@ -521,12 +654,12 @@ export default function VideoRecorder({
                     {/* Enhanced bar path visualization */}
                     {trackingSettings.barPathTracking && barPath.length > 1 && (
                       <>
-                        {/* Continuous path with gradient opacity */}
+                        {/* Continuous path with selected bar color */}
                         <Path
                           d={barPath.map((point, index) => 
                             index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
                           ).join(' ')}
-                          stroke="#22c55e" // Bright green like in the reference image
+                          stroke={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
                           strokeWidth="4"
                           fill="none"
                           strokeLinejoin="round"
@@ -539,34 +672,21 @@ export default function VideoRecorder({
                             <Circle
                               cx={barPath[barPath.length - 1].x}
                               cy={barPath[barPath.length - 1].y}
-                              r="12"
-                              fill="#22c55e"
+                              r="14"
+                              fill={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
                               stroke="#ffffff"
-                              strokeWidth="2"
+                              strokeWidth="3"
                             />
                             
-                            {/* Metrics display similar to reference image */}
+                            {/* Live velocity indicator */}
                             <Circle
-                              cx={40}
-                              cy={40}
-                              r="30"
-                              fill="rgba(0,0,0,0.7)"
-                            />
-                            <Circle
-                              cx={40}
-                              cy={40}
-                              r="28"
+                              cx={barPath[barPath.length - 1].x}
+                              cy={barPath[barPath.length - 1].y}
+                              r="20"
                               fill="none"
-                              stroke="#22c55e"
+                              stroke={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
                               strokeWidth="2"
-                            />
-                            
-                            {/* Velocity metric */}
-                            <Circle
-                              cx={40}
-                              cy={120}
-                              r="35"
-                              fill="rgba(0,0,0,0.7)"
+                              opacity={0.5}
                             />
                           </>
                         )}
@@ -619,7 +739,15 @@ export default function VideoRecorder({
                   </Svg>
                 </View>
               )}
+              
+              {/* Bar positioning instructions */}
+              {isSettingBarPosition && (
+                <View style={styles.positioningInstructions}>
+                  <Text style={styles.positioningText}>Tap on the {barTargets.find(b => b.isSelected)?.name} to set tracking position</Text>
+                </View>
+              )}
             </CameraView>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -724,6 +852,61 @@ export default function VideoRecorder({
           </View>
         )}
 
+        {/* Bar Selection Modal */}
+        <Modal visible={showBarSelection} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.barSelectionModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Bar to Track</Text>
+                <TouchableOpacity onPress={() => setShowBarSelection(false)}>
+                  <X color="#6b7280" size={24} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.barOptions}>
+                {barTargets.map(bar => (
+                  <TouchableOpacity
+                    key={bar.id}
+                    style={[
+                      styles.barOption,
+                      bar.isSelected && styles.barOptionSelected
+                    ]}
+                    onPress={() => selectBar(bar.id)}
+                  >
+                    <View style={[styles.barColorIndicator, { backgroundColor: bar.color }]} />
+                    <Text style={[
+                      styles.barOptionText,
+                      bar.isSelected && styles.barOptionTextSelected
+                    ]}>
+                      {bar.name}
+                    </Text>
+                    {bar.position && (
+                      <Text style={styles.positionSet}>✓ Position Set</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.setPositionButton}
+                  onPress={startBarPositioning}
+                >
+                  <Target color="#ffffff" size={20} />
+                  <Text style={styles.setPositionButtonText}>Set Position</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.doneButton}
+                  onPress={() => setShowBarSelection(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Instructions */}
         <View style={styles.instructions}>
           {recordedVideo ? (
@@ -736,8 +919,10 @@ export default function VideoRecorder({
           ) : (
             <Text style={styles.instructionText}>
               {isRecording 
-                ? `Recording... Tap the square to stop (max 60 seconds)${(trackingSettings.barPathTracking || trackingSettings.bodyAlignment) ? ' • Form tracking active' : ''}`
-                : 'Position your client and tap the record button to start filming'
+                ? `Recording... Tap the square to stop (max 60 seconds)${(trackingSettings.barPathTracking || trackingSettings.bodyAlignment) ? ' • Live tracking active' : ''}`
+                : isSettingBarPosition
+                ? 'Tap on the equipment in the camera view to set tracking position'
+                : 'Set bar position in settings, then tap record to start filming with live tracking'
               }
             </Text>
           )}
@@ -1111,6 +1296,122 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  cameraWrapper: {
+    flex: 1,
+  },
+  barIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  positioningInstructions: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  positioningText: {
+    color: '#ffffff',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '600' as const,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  barSelectionModal: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    color: '#1f2937',
+  },
+  barOptions: {
+    padding: 20,
+  },
+  barOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  barOptionSelected: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  barColorIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  barOptionText: {
+    fontSize: 16,
+    color: '#374151',
+    flex: 1,
+  },
+  barOptionTextSelected: {
+    color: '#1f2937',
+    fontWeight: '600' as const,
+  },
+  positionSet: {
+    fontSize: 12,
+    color: '#10b981',
+    fontWeight: '600' as const,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  setPositionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 12,
+  },
+  setPositionButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600' as const,
+    marginLeft: 8,
+  },
+  doneButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+  },
+  doneButtonText: {
+    color: '#374151',
     fontSize: 16,
     fontWeight: '600' as const,
   },
