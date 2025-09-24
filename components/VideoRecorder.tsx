@@ -27,7 +27,7 @@ import {
   Eye,
   TrendingUp
 } from 'lucide-react-native';
-import Svg, { Line, Circle } from 'react-native-svg';
+import Svg, { Line, Circle, Path } from 'react-native-svg';
 
 interface VideoRecorderProps {
   visible: boolean;
@@ -232,14 +232,28 @@ export default function VideoRecorder({
         return;
       }
       
-      // Simulate bar path tracking
+      // Simulate realistic bar path tracking for weightlifting
       if (trackingSettings.barPathTracking) {
+        // Create more realistic bar path simulation for exercises like squats or deadlifts
+        // This simulates a bar moving in a more predictable pattern
+        const time = Date.now();
+        const cyclePosition = (time % 4000) / 4000; // 0 to 1 over 4 seconds
+        
+        // Calculate x position with slight horizontal drift (common in lifts)
+        const baseX = 180; // Center position
+        const xVariation = Math.sin(cyclePosition * Math.PI * 2) * 15; // Slight horizontal movement
+        
+        // Calculate y position with more vertical movement (up/down for the lift)
+        const baseY = 250; // Middle position
+        const yVariation = Math.sin(cyclePosition * Math.PI) * 100; // More pronounced vertical movement
+        
         const newPoint = {
-          x: Math.random() * 300 + 50, // Simulate bar position
-          y: Math.random() * 100 + 200,
-          timestamp: Date.now(),
+          x: baseX + xVariation,
+          y: baseY + yVariation,
+          timestamp: time,
         };
-        setBarPath(prev => [...prev.slice(-20), newPoint]); // Keep last 20 points
+        
+        setBarPath(prev => [...prev.slice(-30), newPoint]); // Keep last 30 points for a longer trail
       }
       
       // Simulate body keypoint detection
@@ -486,39 +500,75 @@ export default function VideoRecorder({
                 </View>
               )}
               
+              {/* Metrics display when recording - similar to reference image */}
+              {isRecording && trackingSettings.barPathTracking && barPath.length > 0 && (
+                <View style={styles.metricsOverlay}>
+                  <View style={styles.weightDisplay}>
+                    <Text style={styles.weightValue}>45kg</Text>
+                    <Text style={styles.weightRep}>1/3</Text>
+                  </View>
+                  <View style={styles.metricBox}>
+                    <Text style={styles.metricValue}>1.03</Text>
+                    <Text style={styles.metricLabel}>M. Velocity (M/S)</Text>
+                  </View>
+                </View>
+              )}
+              
               {/* Real-time form overlay */}
               {trackingSettings.realTimeOverlay && isRecording && (
                 <View style={styles.overlayContainer}>
                   <Svg style={styles.overlay} width="100%" height="100%">
-                    {/* Bar path visualization */}
+                    {/* Enhanced bar path visualization */}
                     {trackingSettings.barPathTracking && barPath.length > 1 && (
                       <>
-                        {barPath.map((point, index) => {
-                          if (index === 0) return null;
-                          const prevPoint = barPath[index - 1];
-                          return (
-                            <Line
-                              key={`bar-path-${point.timestamp}-${index}`}
-                              x1={prevPoint.x}
-                              y1={prevPoint.y}
-                              x2={point.x}
-                              y2={point.y}
-                              stroke="#6366f1"
-                              strokeWidth="3"
-                              opacity={0.8}
-                            />
-                          );
-                        })}
-                        {/* Current bar position */}
+                        {/* Continuous path with gradient opacity */}
+                        <Path
+                          d={barPath.map((point, index) => 
+                            index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+                          ).join(' ')}
+                          stroke="#22c55e" // Bright green like in the reference image
+                          strokeWidth="4"
+                          fill="none"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                        
+                        {/* Current bar position with larger indicator */}
                         {barPath.length > 0 && (
-                          <Circle
-                            cx={barPath[barPath.length - 1].x}
-                            cy={barPath[barPath.length - 1].y}
-                            r="8"
-                            fill="#6366f1"
-                            stroke="#ffffff"
-                            strokeWidth="2"
-                          />
+                          <>
+                            <Circle
+                              cx={barPath[barPath.length - 1].x}
+                              cy={barPath[barPath.length - 1].y}
+                              r="12"
+                              fill="#22c55e"
+                              stroke="#ffffff"
+                              strokeWidth="2"
+                            />
+                            
+                            {/* Metrics display similar to reference image */}
+                            <Circle
+                              cx={40}
+                              cy={40}
+                              r="30"
+                              fill="rgba(0,0,0,0.7)"
+                            />
+                            <Circle
+                              cx={40}
+                              cy={40}
+                              r="28"
+                              fill="none"
+                              stroke="#22c55e"
+                              strokeWidth="2"
+                            />
+                            
+                            {/* Velocity metric */}
+                            <Circle
+                              cx={40}
+                              cy={120}
+                              r="35"
+                              fill="rgba(0,0,0,0.7)"
+                            />
+                          </>
                         )}
                       </>
                     )}
@@ -629,26 +679,26 @@ export default function VideoRecorder({
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.metricsRow}>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Shoulder Level</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.analysisMetricLabel}>Shoulder Level</Text>
+                  <Text style={styles.analysisMetricValue}>
                     {Math.round(formAnalysis.bodyAlignment[0]?.shoulderLevel * 100)}%
                   </Text>
                 </View>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Hip Level</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.analysisMetricLabel}>Hip Level</Text>
+                  <Text style={styles.analysisMetricValue}>
                     {Math.round(formAnalysis.bodyAlignment[0]?.hipLevel * 100)}%
                   </Text>
                 </View>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Knee Alignment</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.analysisMetricLabel}>Knee Alignment</Text>
+                  <Text style={styles.analysisMetricValue}>
                     {Math.round(formAnalysis.bodyAlignment[0]?.kneeAlignment * 100)}%
                   </Text>
                 </View>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Back Angle</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.analysisMetricLabel}>Back Angle</Text>
+                  <Text style={styles.analysisMetricValue}>
                     {formAnalysis.bodyAlignment[0]?.backAngle}°
                   </Text>
                 </View>
@@ -698,6 +748,51 @@ export default function VideoRecorder({
 }
 
 const styles = StyleSheet.create({
+  metricsOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    flexDirection: 'column',
+  },
+  metricBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#22c55e',
+    minWidth: 120,
+  },
+  metricValue: {
+    color: '#22c55e',
+    fontSize: 28,
+    fontWeight: 'bold' as const,
+  },
+  metricLabel: {
+    color: '#ffffff',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  weightDisplay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minWidth: 120,
+  },
+  weightValue: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+  },
+  weightRep: {
+    color: '#ffffff',
+    fontSize: 14,
+    marginLeft: 10,
+    opacity: 0.8,
+  },
   container: {
     flex: 1,
     backgroundColor: '#000000',
@@ -816,12 +911,12 @@ const styles = StyleSheet.create({
     marginRight: 20,
     minWidth: 80,
   },
-  metricLabel: {
+  analysisMetricLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     marginBottom: 4,
   },
-  metricValue: {
+  analysisMetricValue: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600' as const,
