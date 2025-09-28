@@ -21,11 +21,13 @@ import {
   Target,
   User,
   Dumbbell,
-  Trash2
+  Trash2,
+  TrendingUp
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFitnessStore } from '@/store/fitness-store';
 import { colors } from '@/constants/branding';
+import BarPathTracker from '@/components/BarPathTracker';
 import type { VideoRecord, Client, Exercise } from '@/types';
 
 export default function VideoRecordsScreen() {
@@ -34,6 +36,8 @@ export default function VideoRecordsScreen() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('all');
+  const [showBarPathTracker, setShowBarPathTracker] = useState<boolean>(false);
+  const [trackingVideo, setTrackingVideo] = useState<VideoRecord | null>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -90,6 +94,24 @@ export default function VideoRecordsScreen() {
     );
   };
 
+  const handleBarPathTracking = (record: VideoRecord) => {
+    setTrackingVideo(record);
+    setShowBarPathTracker(true);
+    if (selectedVideo?.id === record.id) {
+      closeVideoModal();
+    }
+  };
+
+  const closeBarPathTracker = () => {
+    setShowBarPathTracker(false);
+    setTrackingVideo(null);
+  };
+
+  const handleSaveAnalysis = (analysis: any) => {
+    console.log('Bar path analysis saved:', analysis);
+    // Here you could save the analysis to your store or backend
+  };
+
   const renderVideoRecord = ({ item }: { item: VideoRecord }) => (
     <TouchableOpacity
       style={styles.videoCard}
@@ -124,15 +146,26 @@ export default function VideoRecordsScreen() {
         </View>
       </View>
       
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          handleDeleteVideo(item);
-        }}
-      >
-        <Trash2 color="#ef4444" size={18} />
-      </TouchableOpacity>
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={styles.trackButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleBarPathTracking(item);
+          }}
+        >
+          <TrendingUp color="#6366f1" size={16} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleDeleteVideo(item);
+          }}
+        >
+          <Trash2 color="#ef4444" size={18} />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -250,12 +283,20 @@ export default function VideoRecordsScreen() {
                   {getClientName(selectedVideo.clientId)} - {selectedVideo.weight}kg × {selectedVideo.reps}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.modalDeleteButton}
-                onPress={() => handleDeleteVideo(selectedVideo)}
-              >
-                <Trash2 color="#ef4444" size={20} />
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalActionButton}
+                  onPress={() => handleBarPathTracking(selectedVideo)}
+                >
+                  <TrendingUp color="#6366f1" size={20} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalDeleteButton}
+                  onPress={() => handleDeleteVideo(selectedVideo)}
+                >
+                  <Trash2 color="#ef4444" size={20} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.videoContainer}>
@@ -326,6 +367,18 @@ export default function VideoRecordsScreen() {
           </View>
         )}
       </Modal>
+
+      {/* Bar Path Tracker Modal */}
+      {trackingVideo && (
+        <BarPathTracker
+          visible={showBarPathTracker}
+          onClose={closeBarPathTracker}
+          videoUri={trackingVideo.videoUri}
+          exerciseName={getExerciseName(trackingVideo.exerciseId)}
+          clientName={getClientName(trackingVideo.clientId)}
+          onSaveAnalysis={handleSaveAnalysis}
+        />
+      )}
     </View>
   );
 }
@@ -493,12 +546,25 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 2,
   },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modalActionButton: {
+    padding: 8,
+  },
   modalDeleteButton: {
+    padding: 8,
+  },
+  cardActions: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  trackButton: {
     padding: 8,
   },
   deleteButton: {
     padding: 8,
-    marginLeft: 8,
   },
   videoContainer: {
     flex: 1,
