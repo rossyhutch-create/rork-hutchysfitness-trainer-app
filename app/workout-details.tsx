@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,22 @@ import {
   TouchableOpacity,
   Share,
   Platform,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFitnessStore } from '@/store/fitness-store';
-import { ArrowLeft, Calendar, Clock, User, Share2 } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, User, Share2, MessageSquare, X } from 'lucide-react-native';
 import { colors } from '@/constants/branding';
 
 export default function WorkoutDetails() {
   const router = useRouter();
   const { workoutId } = useLocalSearchParams();
-  const { workouts, clients, measurementSettings } = useFitnessStore();
+  const { workouts, clients, measurementSettings, updateWorkout } = useFitnessStore();
+  const [commentModalVisible, setCommentModalVisible] = useState<boolean>(false);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState<string>('');
   
   const workout = workouts.find(w => w.id === workoutId);
   const client = workout ? clients.find(c => c.id === workout.clientId) : null;
@@ -104,6 +109,27 @@ export default function WorkoutDetails() {
     return summary;
   };
 
+  const handleOpenCommentModal = (exerciseId: string, currentComment?: string) => {
+    setSelectedExerciseId(exerciseId);
+    setCommentText(currentComment || '');
+    setCommentModalVisible(true);
+  };
+
+  const handleSaveComment = () => {
+    if (!workout || !selectedExerciseId) return;
+
+    const updatedExercises = workout.exercises.map(ex => 
+      ex.id === selectedExerciseId 
+        ? { ...ex, comments: commentText.trim() || undefined }
+        : ex
+    );
+
+    updateWorkout(workout.id, { exercises: updatedExercises });
+    setCommentModalVisible(false);
+    setSelectedExerciseId(null);
+    setCommentText('');
+  };
+
   const handleShare = async () => {
     try {
       const message = generateWorkoutSummary();
@@ -178,7 +204,18 @@ export default function WorkoutDetails() {
           
           {workout.exercises.map((exercise, index) => (
             <View key={`exercise-${exercise.id}`} style={styles.exerciseCard}>
-              <Text style={styles.exerciseName}>{exercise.exercise.name}</Text>
+              <View style={styles.exerciseHeader}>
+                <Text style={styles.exerciseName}>{exercise.exercise.name}</Text>
+                <TouchableOpacity 
+                  onPress={() => handleOpenCommentModal(exercise.id, exercise.comments)}
+                  style={styles.commentButton}
+                >
+                  <MessageSquare 
+                    size={20} 
+                    color={exercise.comments ? colors.primary : colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+              </View>
               
               <View style={styles.setsContainer}>
                 {exercise.sets.map((set, setIndex) => (
@@ -201,10 +238,64 @@ export default function WorkoutDetails() {
               {exercise.notes && (
                 <Text style={styles.exerciseNotes}>{exercise.notes}</Text>
               )}
+
+              {exercise.comments && (
+                <View style={styles.commentsSection}>
+                  <Text style={styles.commentsLabel}>Comments:</Text>
+                  <Text style={styles.commentsText}>{exercise.comments}</Text>
+                </View>
+              )}
             </View>
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={commentModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCommentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Comment</Text>
+              <TouchableOpacity 
+                onPress={() => setCommentModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.commentInput}
+              value={commentText}
+              onChangeText={setCommentText}
+              placeholder="Add your comments about this exercise..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                onPress={() => setCommentModalVisible(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={handleSaveComment}
+                style={[styles.modalButton, styles.saveButton]}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -336,5 +427,95 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 12,
     fontStyle: 'italic',
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  commentButton: {
+    padding: 8,
+  },
+  commentsSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  commentsLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  commentsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    minHeight: 120,
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

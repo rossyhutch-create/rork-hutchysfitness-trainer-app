@@ -68,6 +68,7 @@ export interface WorkoutExercise {
   exercise: Exercise;
   sets: WorkoutSet[];
   notes?: string;
+  comments?: string;
   clientSets?: ClientWorkoutSet[]; // For multi-client workouts
 }
 
