@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   backButton: {
     padding: 8,
@@ -333,12 +333,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBackground,
     margin: 20,
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   workoutName: {
     fontSize: 24,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
   },
   notesLabel: {
     fontSize: 14,
@@ -383,12 +383,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   exerciseCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBackground,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   exerciseName: {
     fontSize: 18,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
   setNumber: {
     fontSize: 14,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.border,
   },
   commentsLabel: {
     fontSize: 13,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -484,11 +484,12 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     color: colors.text,
+    backgroundColor: colors.background,
     minHeight: 120,
     marginBottom: 20,
   },
@@ -503,7 +504,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -516,6 +519,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
 });

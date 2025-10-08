@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   videoCard: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -455,11 +455,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   videoThumbnail: {
     width: 60,
     height: 60,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.background,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -471,7 +473,7 @@ const styles = StyleSheet.create({
   exerciseName: {
     fontSize: 16,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 4,
   },
   clientInfo: {
@@ -481,7 +483,7 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   videoStats: {
@@ -494,7 +496,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   emptyContainer: {
@@ -506,13 +508,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold' as const,
-    color: '#374151',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -596,13 +598,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   videoDetails: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     padding: 20,
   },
   detailsTitle: {
     fontSize: 18,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 16,
   },
   detailsGrid: {
@@ -617,30 +619,30 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 16,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
   },
   notesContainer: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.border,
   },
   notesLabel: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   notesText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

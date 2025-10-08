@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
   },
   deleteConfirmOverlay: {
     position: 'absolute' as const,
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   deleteConfirmDialog: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 20,
     width: '90%',
@@ -708,12 +708,12 @@ const styles = StyleSheet.create({
   deleteConfirmTitle: {
     fontSize: 18,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 12,
   },
   deleteConfirmText: {
     fontSize: 16,
-    color: '#4b5563',
+    color: colors.textSecondary,
     marginBottom: 20,
     lineHeight: 22,
   },
@@ -730,13 +730,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   confirmButton: {
     backgroundColor: '#ef4444',
   },
   cancelButtonText: {
-    color: '#4b5563',
+    color: colors.text,
     fontWeight: '600' as const,
     fontSize: 14,
   },
@@ -799,13 +801,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold' as const,
-    color: '#374151',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -823,7 +825,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -831,14 +833,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
   },
   closeButton: {
     padding: 4,
@@ -850,7 +852,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -859,6 +861,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   clientInfo: {
     flexDirection: 'row',
@@ -869,7 +873,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -880,12 +884,12 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 4,
   },
   clientStats: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   clientBadge: {
     backgroundColor: '#6366f1',

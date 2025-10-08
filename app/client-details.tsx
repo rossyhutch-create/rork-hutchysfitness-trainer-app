@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFitnessStore } from '@/store/fitness-store';
 import ClientProgressManager from '@/components/ClientProgressManager';
+import { colors } from '@/constants/branding';
 
 export default function ClientDetailsScreen() {
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
@@ -304,7 +305,7 @@ export default function ClientDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '47%',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -399,17 +400,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   section: {
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold' as const,
-    color: '#1f2937',
+    color: colors.text,
   },
   prList: {
     gap: 12,
@@ -438,7 +441,7 @@ const styles = StyleSheet.create({
   prCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     elevation: 2,
@@ -446,6 +449,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   prIcon: {
     width: 36,
@@ -462,12 +467,12 @@ const styles = StyleSheet.create({
   prExercise: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 2,
   },
   prType: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   prValue: {
     alignItems: 'flex-end',
@@ -480,23 +485,25 @@ const styles = StyleSheet.create({
   },
   prDate: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   emptyPR: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   emptyPRText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   workoutList: {
     gap: 12,
   },
   workoutCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     elevation: 2,
@@ -504,6 +511,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   workoutInfo: {
     marginBottom: 8,
@@ -511,12 +520,12 @@ const styles = StyleSheet.create({
   workoutName: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 2,
   },
   workoutDate: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   workoutStats: {
     flexDirection: 'row',
@@ -524,21 +533,23 @@ const styles = StyleSheet.create({
   },
   workoutStatText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   workoutDuration: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   emptyWorkouts: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   emptyWorkoutsText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   actions: {
     padding: 20,
