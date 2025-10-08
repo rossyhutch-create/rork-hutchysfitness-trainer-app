@@ -654,39 +654,98 @@ export default function VideoRecorder({
                     {/* Enhanced bar path visualization */}
                     {trackingSettings.barPathTracking && barPath.length > 1 && (
                       <>
-                        {/* Continuous path with selected bar color */}
+                        {/* Shadow/glow effect for better visibility */}
+                        <Path
+                          d={barPath.map((point, index) => 
+                            index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+                          ).join(' ')}
+                          stroke="#000000"
+                          strokeWidth="10"
+                          fill="none"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          opacity={0.5}
+                        />
+                        
+                        {/* Main path line - thicker and more visible */}
                         <Path
                           d={barPath.map((point, index) => 
                             index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
                           ).join(' ')}
                           stroke={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
-                          strokeWidth="4"
+                          strokeWidth="6"
                           fill="none"
                           strokeLinejoin="round"
                           strokeLinecap="round"
                         />
                         
-                        {/* Current bar position with larger indicator */}
+                        {/* Path points for better visibility */}
+                        {barPath.map((point, index) => (
+                          index % 3 === 0 && (
+                            <Circle
+                              key={`path-point-${index}`}
+                              cx={point.x}
+                              cy={point.y}
+                              r="3"
+                              fill="#ffffff"
+                              opacity={0.6}
+                            />
+                          )
+                        ))}
+                        
+                        {/* Start position marker */}
                         {barPath.length > 0 && (
                           <>
                             <Circle
-                              cx={barPath[barPath.length - 1].x}
-                              cy={barPath[barPath.length - 1].y}
-                              r="14"
-                              fill={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
-                              stroke="#ffffff"
-                              strokeWidth="3"
+                              cx={barPath[0].x}
+                              cy={barPath[0].y}
+                              r="16"
+                              fill="none"
+                              stroke="#10b981"
+                              strokeWidth="4"
                             />
-                            
-                            {/* Live velocity indicator */}
+                            <Circle
+                              cx={barPath[0].x}
+                              cy={barPath[0].y}
+                              r="8"
+                              fill="#10b981"
+                            />
+                          </>
+                        )}
+                        
+                        {/* Current bar position with larger indicator */}
+                        {barPath.length > 0 && (
+                          <>
+                            {/* Outer glow */}
                             <Circle
                               cx={barPath[barPath.length - 1].x}
                               cy={barPath[barPath.length - 1].y}
-                              r="20"
+                              r="24"
+                              fill="none"
+                              stroke={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
+                              strokeWidth="3"
+                              opacity={0.3}
+                            />
+                            
+                            {/* Middle ring */}
+                            <Circle
+                              cx={barPath[barPath.length - 1].x}
+                              cy={barPath[barPath.length - 1].y}
+                              r="18"
                               fill="none"
                               stroke={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
                               strokeWidth="2"
-                              opacity={0.5}
+                              opacity={0.6}
+                            />
+                            
+                            {/* Main position indicator */}
+                            <Circle
+                              cx={barPath[barPath.length - 1].x}
+                              cy={barPath[barPath.length - 1].y}
+                              r="12"
+                              fill={barTargets.find(b => b.isSelected)?.color || '#22c55e'}
+                              stroke="#ffffff"
+                              strokeWidth="4"
                             />
                           </>
                         )}
