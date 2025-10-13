@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
-import { Plus, User, Calendar, TrendingUp, Trash2 } from 'lucide-react-native';
+import { Plus, User, Calendar, TrendingUp, Trash2, Search } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFitnessStore } from '@/store/fitness-store';
@@ -18,6 +19,7 @@ import { colors } from '@/constants/branding';
 export default function ClientsScreen() {
   const { clients, workouts, loadData, isLoading, deleteClient } = useFitnessStore();
   const insets = useSafeAreaInsets();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -35,6 +37,10 @@ export default function ClientsScreen() {
       lastWorkout: lastWorkout?.date,
     };
   };
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDeleteClient = (client: Client) => {
     if (Platform.OS === 'web') {
@@ -125,7 +131,29 @@ export default function ClientsScreen() {
         </TouchableOpacity>
       </View>
 
-      {clients.length === 0 ? (
+      {clients.length > 0 && (
+        <View style={styles.searchContainer}>
+          <Search color={colors.textSecondary} size={20} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search clients..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            testID="client-search-input"
+          />
+        </View>
+      )}
+
+      {filteredClients.length === 0 && clients.length > 0 ? (
+        <View style={styles.emptyContainer}>
+          <Search color={colors.textSecondary} size={64} />
+          <Text style={styles.emptyTitle}>No clients found</Text>
+          <Text style={styles.emptyText}>
+            Try adjusting your search query
+          </Text>
+        </View>
+      ) : clients.length === 0 ? (
         <View style={styles.emptyContainer}>
           <User color={colors.textSecondary} size={64} />
           <Text style={styles.emptyTitle}>No clients yet</Text>
@@ -141,7 +169,7 @@ export default function ClientsScreen() {
         </View>
       ) : (
         <FlatList
-          data={clients}
+          data={filteredClients}
           renderItem={renderClient}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -268,5 +296,26 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    fontSize: 16,
+    color: colors.text,
   },
 });
