@@ -95,12 +95,13 @@ export default function NavigationDropdown() {
 
 const styles = StyleSheet.create({
   dropdownButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    minWidth: 200,
   },
   dropdownContent: {
     flexDirection: 'row',
@@ -112,6 +113,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: colors.text,
     flex: 1,
+    minWidth: 100,
   },
   modalOverlay: {
     flex: 1,
@@ -130,8 +132,8 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
     gap: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -140,9 +142,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   menuItemText: {
-    fontSize: 16,
+    fontSize: 17,
     color: colors.textSecondary,
     fontWeight: '500' as const,
+    flex: 1,
   },
   menuItemTextActive: {
     color: colors.primary,
