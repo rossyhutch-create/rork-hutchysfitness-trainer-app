@@ -9,9 +9,10 @@ import {
   Modal,
 } from 'react-native';
 import { Plus, Search, Trash2, Filter } from 'lucide-react-native';
+import MuscleGroupIcon from '@/components/MuscleGroupIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFitnessStore } from '@/store/fitness-store';
-import { Exercise, ExerciseCategory } from '@/types';
+import { Exercise } from '@/types';
 import { EXERCISE_CATEGORIES } from '@/constants/exercises';
 import AddExerciseModal from '@/components/AddExerciseModal';
 import MuscleGroupSelector from '@/components/MuscleGroupSelector';
@@ -53,10 +54,7 @@ export default function ExercisesScreen() {
     setFilteredExercises(filtered);
   }, [exercises, searchQuery, selectedMuscleGroups]);
 
-  const getCategoryEmoji = (category: ExerciseCategory) => {
-    const categoryData = EXERCISE_CATEGORIES.find(cat => cat.id === category);
-    return categoryData?.emoji || '💪';
-  };
+
 
   const renderExercise = ({ item }: { item: Exercise }) => (
     <TouchableOpacity
@@ -64,7 +62,9 @@ export default function ExercisesScreen() {
       onPress={() => console.log('View exercise:', item.id)}
     >
       <View style={styles.exerciseHeader}>
-        <Text style={styles.exerciseEmoji}>{getCategoryEmoji(item.category)}</Text>
+        <View style={styles.muscleIconContainer}>
+          <MuscleGroupIcon muscleGroups={item.muscleGroups} size={50} />
+        </View>
         <View style={styles.exerciseInfo}>
           <Text style={styles.exerciseName}>
             {item.name}
@@ -324,9 +324,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  exerciseEmoji: {
-    fontSize: 32,
+  muscleIconContainer: {
     marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   exerciseInfo: {
     flex: 1,
