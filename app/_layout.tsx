@@ -27,7 +27,11 @@ function RootLayoutNav() {
     }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="clients" options={{ headerShown: false }} />
+      <Stack.Screen name="workouts" options={{ headerShown: false }} />
+      <Stack.Screen name="exercises" options={{ headerShown: false }} />
+      <Stack.Screen name="progress" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="add-client" options={{ presentation: "modal", title: "Add Client" }} />
       <Stack.Screen name="add-workout" options={{ presentation: "modal", title: "Add Workout" }} />
       <Stack.Screen name="workout-builder" options={{ presentation: "modal", title: "Workout Builder" }} />

@@ -29,7 +29,7 @@ export default function Index() {
     return <Redirect href="/auth" />;
   }
 
-  return <Redirect href="/(tabs)/clients" />;
+  return <Redirect href="/clients" />;
 }
 
 const styles = StyleSheet.create({
