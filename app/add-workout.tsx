@@ -233,7 +233,7 @@ export default function AddWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#000000',
   },
   content: {
     flex: 1,
@@ -245,14 +245,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#ffffff',
     marginBottom: 12,
   },
   clientSelector: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1a1a1a',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#333333',
     overflow: 'hidden',
   },
   clientSelectorContent: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   selectedClientName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#ffffff',
   },
   placeholderText: {
     fontSize: 16,
@@ -282,15 +282,15 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1a1a1a',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#333333',
   },
   dateText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#ffffff',
     marginLeft: 12,
     fontWeight: '500',
   },
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   continueButtonDisabled: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#333333',
   },
   continueButtonText: {
     fontSize: 16,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   multiClientToggle: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#1a1a1a',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -330,14 +330,14 @@ const styles = StyleSheet.create({
   multiClientToggleText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
+    color: '#9ca3af',
   },
   multiClientToggleTextActive: {
     color: '#ffffff',
   },
   clientItemSelected: {
     borderColor: '#6366f1',
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#1a1a2e',
   },
   clientAvatarSelected: {
     backgroundColor: '#6366f1',
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#000000',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -387,14 +387,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1a1a1a',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#333333',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#ffffff',
   },
   modalCloseButton: {
     paddingHorizontal: 8,
@@ -411,12 +411,12 @@ const styles = StyleSheet.create({
   clientItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1a1a1a',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#333333',
   },
   clientAvatar: {
     width: 48,
@@ -433,12 +433,12 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#ffffff',
     marginBottom: 2,
   },
   clientEmail: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
   emptyContainer: {
     flex: 1,
@@ -449,13 +449,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#ffffff',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
