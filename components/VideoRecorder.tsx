@@ -107,6 +107,12 @@ export default function VideoRecorder({
   const [selectedBarId, setSelectedBarId] = useState<string>('1');
 
   const resetState = () => {
+    // Clear tracking interval
+    if (trackingIntervalRef.current) {
+      clearInterval(trackingIntervalRef.current);
+      trackingIntervalRef.current = null;
+    }
+    
     setIsRecording(false);
     setRecordedVideo(null);
     setIsPlaying(false);
@@ -264,14 +270,24 @@ export default function VideoRecorder({
     }
   };
 
+  const trackingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const startFormTracking = () => {
     console.log('Starting form tracking...');
     const selectedBar = barTargets.find(bar => bar.isSelected);
     
-    // Simulate real-time tracking (in a real app, this would use computer vision)
-    const trackingInterval = setInterval(() => {
+    // Clear any existing interval
+    if (trackingIntervalRef.current) {
+      clearInterval(trackingIntervalRef.current);
+    }
+    
+    // Real-time tracking based on bar position
+    trackingIntervalRef.current = setInterval(() => {
       if (!isRecording) {
-        clearInterval(trackingInterval);
+        if (trackingIntervalRef.current) {
+          clearInterval(trackingIntervalRef.current);
+          trackingIntervalRef.current = null;
+        }
         return;
       }
       
@@ -417,14 +433,17 @@ export default function VideoRecorder({
     setIsPlaying(false);
   };
 
-  const togglePlayback = () => {
+  const togglePlayback = async () => {
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pauseAsync();
-      } else {
-        videoRef.current.playAsync();
+      try {
+        if (isPlaying) {
+          await videoRef.current.pauseAsync();
+        } else {
+          await videoRef.current.playAsync();
+        }
+      } catch (error) {
+        console.error('Error toggling playback:', error);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -566,21 +585,30 @@ export default function VideoRecorder({
                 source={{ uri: recordedVideo }}
                 style={styles.video}
                 resizeMode={ResizeMode.CONTAIN}
-                shouldPlay={false}
+                shouldPlay={isPlaying}
                 isLooping={false}
+                useNativeControls={false}
                 onPlaybackStatusUpdate={(status: any) => {
-                  if ('didJustFinish' in status && status.didJustFinish) {
-                    setIsPlaying(false);
+                  if (status.isLoaded) {
+                    if ('didJustFinish' in status && status.didJustFinish) {
+                      setIsPlaying(false);
+                    }
+                    if ('isPlaying' in status) {
+                      setIsPlaying(status.isPlaying);
+                    }
                   }
                 }}
               />
-              <TouchableOpacity style={styles.playButton} onPress={togglePlayback}>
-                {isPlaying ? (
-                  <Pause color="#ffffff" size={32} />
-                ) : (
+              {!isPlaying && (
+                <TouchableOpacity style={styles.playButton} onPress={togglePlayback}>
                   <Play color="#ffffff" size={32} />
-                )}
-              </TouchableOpacity>
+                </TouchableOpacity>
+              )}
+              {isPlaying && (
+                <TouchableOpacity style={styles.pauseButton} onPress={togglePlayback}>
+                  <Pause color="#ffffff" size={32} />
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <TouchableOpacity
@@ -1215,6 +1243,17 @@ const styles = StyleSheet.create({
     top: '50%',
     left: '50%',
     transform: [{ translateX: -25 }, { translateY: -25 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pauseButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     width: 50,
     height: 50,

@@ -71,6 +71,7 @@ export default function VideoRecordsScreen() {
   };
 
   const togglePlayback = () => {
+    console.log('Toggle playback, current state:', isPlaying);
     setIsPlaying(!isPlaying);
   };
 
@@ -307,9 +308,15 @@ export default function VideoRecordsScreen() {
                   resizeMode={ResizeMode.CONTAIN}
                   shouldPlay={isPlaying}
                   isLooping={false}
+                  useNativeControls={false}
                   onPlaybackStatusUpdate={(status: any) => {
-                    if ('didJustFinish' in status && status.didJustFinish) {
-                      setIsPlaying(false);
+                    if (status.isLoaded) {
+                      if ('didJustFinish' in status && status.didJustFinish) {
+                        setIsPlaying(false);
+                      }
+                      if ('isPlaying' in status) {
+                        setIsPlaying(status.isPlaying);
+                      }
                     }
                   }}
                 />
@@ -322,13 +329,14 @@ export default function VideoRecordsScreen() {
                 </View>
               )}
               
-              {Platform.OS !== 'web' && (
+              {Platform.OS !== 'web' && !isPlaying && (
                 <TouchableOpacity style={styles.playButton} onPress={togglePlayback}>
-                  {isPlaying ? (
-                    <Pause color="#ffffff" size={32} />
-                  ) : (
-                    <Play color="#ffffff" size={32} />
-                  )}
+                  <Play color="#ffffff" size={32} />
+                </TouchableOpacity>
+              )}
+              {Platform.OS !== 'web' && isPlaying && (
+                <TouchableOpacity style={styles.pauseButton} onPress={togglePlayback}>
+                  <Pause color="#ffffff" size={32} />
                 </TouchableOpacity>
               )}
             </View>
@@ -590,6 +598,17 @@ const styles = StyleSheet.create({
     top: '50%',
     left: '50%',
     transform: [{ translateX: -25 }, { translateY: -25 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pauseButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     width: 50,
     height: 50,

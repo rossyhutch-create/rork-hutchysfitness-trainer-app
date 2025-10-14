@@ -328,6 +328,7 @@ export default function BarPathTracker({
               resizeMode={ResizeMode.CONTAIN}
               shouldPlay={isPlaying}
               isLooping={false}
+              useNativeControls={false}
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
             />
 
