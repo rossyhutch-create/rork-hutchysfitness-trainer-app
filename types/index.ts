@@ -45,6 +45,12 @@ export type ExerciseCategory =
   | 'cardio' 
   | 'full-body';
 
+export interface ClientSetData {
+  clientId: string;
+  weight: number;
+  videoUri?: string;
+}
+
 export interface WorkoutSet {
   id: string;
   reps: number;
@@ -52,8 +58,9 @@ export interface WorkoutSet {
   restTime?: number;
   notes?: string;
   isPersonalRecord?: boolean;
-  clientId?: string; // For multi-client workouts
+  clientId?: string; // For single-client workouts
   videoUri?: string; // Video recording of the set
+  clientWeights?: ClientSetData[]; // For multi-client workouts - weight per client
 }
 
 export interface ClientWorkoutSet {

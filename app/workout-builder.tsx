@@ -4,13 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   Modal,
   TextInput,
   Alert,
-  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { 
   Plus, 
@@ -59,12 +58,11 @@ export default function WorkoutBuilderScreen() {
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [currentSetTimer, setCurrentSetTimer] = useState<number>(0);
   const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string>(clientIds[0] || '');
   const [showVideoRecorder, setShowVideoRecorder] = useState<boolean>(false);
   const [recordingSetInfo, setRecordingSetInfo] = useState<{
     exerciseId: string;
     setId: string;
-    clientId?: string;
+    clientId: string;
     exerciseName: string;
     clientName: string;
   } | null>(null);
@@ -142,30 +140,18 @@ export default function WorkoutBuilderScreen() {
       id: Date.now().toString(),
       exerciseId: exercise.id,
       exercise,
-      sets: isMultiClient ? [] : [
+      sets: [
         {
           id: Date.now().toString(),
           reps: 10,
           weight: 0,
           restTime: 60,
+          clientWeights: isMultiClient ? clientIds.map(clientId => ({
+            clientId,
+            weight: 0,
+          })) : undefined,
         }
       ],
-      clientSets: isMultiClient ? clientIds.map(clientId => {
-        const client = clients.find(c => c.id === clientId);
-        return {
-          clientId,
-          clientName: client?.name || 'Unknown',
-          sets: [
-            {
-              id: `${Date.now()}_${clientId}`,
-              reps: 10,
-              weight: 0,
-              restTime: 60,
-              clientId,
-            }
-          ]
-        };
-      }) : undefined,
     };
 
     setWorkoutExercises([...workoutExercises, newWorkoutExercise]);
@@ -176,138 +162,131 @@ export default function WorkoutBuilderScreen() {
     setWorkoutExercises(workoutExercises.filter(ex => ex.id !== exerciseId));
   };
 
-  const addSet = (exerciseId: string, clientId?: string) => {
+  const addSet = (exerciseId: string) => {
     setWorkoutExercises(workoutExercises.map(ex => {
       if (ex.id === exerciseId) {
-        if (isMultiClient && clientId && ex.clientSets) {
-          const updatedClientSets = ex.clientSets.map(clientSet => {
-            if (clientSet.clientId === clientId) {
-              const lastSet = clientSet.sets[clientSet.sets.length - 1];
-              const newSet: WorkoutSet = {
-                id: `${Date.now()}_${clientId}`,
-                reps: lastSet?.reps || 10,
-                weight: lastSet?.weight || 0,
-                restTime: lastSet?.restTime || 60,
-                clientId,
-              };
-              return { ...clientSet, sets: [...clientSet.sets, newSet] };
-            }
-            return clientSet;
-          });
-          return { ...ex, clientSets: updatedClientSets };
-        } else {
-          const lastSet = ex.sets[ex.sets.length - 1];
-          const newSet: WorkoutSet = {
-            id: Date.now().toString(),
-            reps: lastSet?.reps || 10,
-            weight: lastSet?.weight || 0,
-            restTime: lastSet?.restTime || 60,
-          };
-          return { ...ex, sets: [...ex.sets, newSet] };
-        }
+        const lastSet = ex.sets[ex.sets.length - 1];
+        const newSet: WorkoutSet = {
+          id: Date.now().toString(),
+          reps: lastSet?.reps || 10,
+          weight: lastSet?.weight || 0,
+          restTime: lastSet?.restTime || 60,
+          clientWeights: isMultiClient ? clientIds.map(clientId => {
+            const lastClientWeight = lastSet?.clientWeights?.find(cw => cw.clientId === clientId);
+            return {
+              clientId,
+              weight: lastClientWeight?.weight || 0,
+            };
+          }) : undefined,
+        };
+        return { ...ex, sets: [...ex.sets, newSet] };
       }
       return ex;
     }));
   };
 
-  const removeSet = (exerciseId: string, setId: string, clientId?: string) => {
+  const removeSet = (exerciseId: string, setId: string) => {
     setWorkoutExercises(workoutExercises.map(ex => {
       if (ex.id === exerciseId) {
-        if (isMultiClient && clientId && ex.clientSets) {
-          const updatedClientSets = ex.clientSets.map(clientSet => {
-            if (clientSet.clientId === clientId) {
-              return { ...clientSet, sets: clientSet.sets.filter(set => set.id !== setId) };
-            }
-            return clientSet;
-          });
-          return { ...ex, clientSets: updatedClientSets };
-        } else {
-          return { ...ex, sets: ex.sets.filter(set => set.id !== setId) };
-        }
+        return { ...ex, sets: ex.sets.filter(set => set.id !== setId) };
       }
       return ex;
     }));
   };
 
-  const updateSet = (exerciseId: string, setId: string, field: keyof WorkoutSet, value: number, clientId?: string) => {
+  const updateSet = (exerciseId: string, setId: string, field: keyof WorkoutSet, value: number) => {
     setWorkoutExercises(workoutExercises.map(ex => {
       if (ex.id === exerciseId) {
-        if (isMultiClient && clientId && ex.clientSets) {
-          const updatedClientSets = ex.clientSets.map(clientSet => {
-            if (clientSet.clientId === clientId) {
+        return {
+          ...ex,
+          sets: ex.sets.map(set => {
+            if (set.id === setId) {
+              return { ...set, [field]: value };
+            }
+            return set;
+          })
+        };
+      }
+      return ex;
+    }));
+  };
+
+  const updateClientWeight = (exerciseId: string, setId: string, clientId: string, weight: number) => {
+    setWorkoutExercises(workoutExercises.map(ex => {
+      if (ex.id === exerciseId) {
+        return {
+          ...ex,
+          sets: ex.sets.map(set => {
+            if (set.id === setId && set.clientWeights) {
               return {
-                ...clientSet,
-                sets: clientSet.sets.map(set => {
-                  if (set.id === setId) {
-                    return { ...set, [field]: value };
-                  }
-                  return set;
-                })
+                ...set,
+                clientWeights: set.clientWeights.map(cw => 
+                  cw.clientId === clientId ? { ...cw, weight } : cw
+                )
               };
             }
-            return clientSet;
-          });
-          return { ...ex, clientSets: updatedClientSets };
-        } else {
-          return {
-            ...ex,
-            sets: ex.sets.map(set => {
-              if (set.id === setId) {
-                return { ...set, [field]: value };
-              }
-              return set;
-            })
-          };
-        }
+            return set;
+          })
+        };
       }
       return ex;
     }));
   };
 
-  const completeSet = (exerciseId: string, setId: string, clientId?: string) => {
+  const completeSet = (exerciseId: string, setId: string) => {
     const exercise = workoutExercises.find(ex => ex.id === exerciseId);
-    let set: WorkoutSet | undefined;
-    let targetClientId = clientId;
-
-    if (isMultiClient && clientId && exercise?.clientSets) {
-      const clientSet = exercise.clientSets.find(cs => cs.clientId === clientId);
-      set = clientSet?.sets.find(s => s.id === setId);
-    } else {
-      set = exercise?.sets.find(s => s.id === setId);
-      targetClientId = clientIds[0];
-    }
+    const set = exercise?.sets.find(s => s.id === setId);
     
-    if (set && exercise && targetClientId) {
-      const volume = set.weight * set.reps;
-      const hasNewPR = checkAndAddPersonalRecord(
-        targetClientId,
-        exercise.exerciseId,
-        set.weight,
-        volume,
-        'temp-workout-id',
-        set.videoUri
-      );
+    if (set && exercise) {
+      if (isMultiClient && set.clientWeights) {
+        set.clientWeights.forEach(clientWeight => {
+          const volume = clientWeight.weight * set.reps;
+          const hasNewPR = checkAndAddPersonalRecord(
+            clientWeight.clientId,
+            exercise.exerciseId,
+            clientWeight.weight,
+            volume,
+            'temp-workout-id',
+            clientWeight.videoUri
+          );
 
-      if (hasNewPR) {
-        const clientName = clients.find(c => c.id === targetClientId)?.name || 'Client';
-        Alert.alert('🎉 Personal Record!', `${clientName} achieved a new personal best!`);
+          if (hasNewPR) {
+            const clientName = clients.find(c => c.id === clientWeight.clientId)?.name || 'Client';
+            Alert.alert('🎉 Personal Record!', `${clientName} achieved a new personal best!`);
+          }
+        });
+      } else {
+        const targetClientId = clientIds[0];
+        const volume = set.weight * set.reps;
+        const hasNewPR = checkAndAddPersonalRecord(
+          targetClientId,
+          exercise.exerciseId,
+          set.weight,
+          volume,
+          'temp-workout-id',
+          set.videoUri
+        );
+
+        if (hasNewPR) {
+          const clientName = clients.find(c => c.id === targetClientId)?.name || 'Client';
+          Alert.alert('🎉 Personal Record!', `${clientName} achieved a new personal best!`);
+        }
       }
 
       startSetTimer(set.restTime || 60);
     }
   };
 
-  const startVideoRecording = (exerciseId: string, setId: string, clientId?: string) => {
+  const startVideoRecording = (exerciseId: string, setId: string, clientId: string) => {
     const exercise = workoutExercises.find(ex => ex.id === exerciseId);
     if (!exercise) return;
 
-    const targetClientId = clientId || clientIds[0];
-    const client = clients.find(c => c.id === targetClientId);
+    const client = clients.find(c => c.id === clientId);
     
     setRecordingSetInfo({
       exerciseId,
       setId,
-      clientId: targetClientId,
+      clientId,
       exerciseName: exercise.exercise.name,
       clientName: client?.name || 'Client',
     });
@@ -317,59 +296,47 @@ export default function WorkoutBuilderScreen() {
   const handleVideoRecorded = (videoUri: string) => {
     if (!recordingSetInfo) return;
 
-    // Update the set with the video URI
     setWorkoutExercises(workoutExercises.map(ex => {
       if (ex.id === recordingSetInfo.exerciseId) {
-        if (isMultiClient && recordingSetInfo.clientId && ex.clientSets) {
-          const updatedClientSets = ex.clientSets.map(clientSet => {
-            if (clientSet.clientId === recordingSetInfo.clientId) {
-              return {
-                ...clientSet,
-                sets: clientSet.sets.map(set => {
-                  if (set.id === recordingSetInfo.setId) {
-                    return { ...set, videoUri };
-                  }
-                  return set;
-                })
-              };
-            }
-            return clientSet;
-          });
-          return { ...ex, clientSets: updatedClientSets };
-        } else {
-          return {
-            ...ex,
-            sets: ex.sets.map(set => {
-              if (set.id === recordingSetInfo.setId) {
+        return {
+          ...ex,
+          sets: ex.sets.map(set => {
+            if (set.id === recordingSetInfo.setId) {
+              if (isMultiClient && set.clientWeights) {
+                return {
+                  ...set,
+                  clientWeights: set.clientWeights.map(cw =>
+                    cw.clientId === recordingSetInfo.clientId 
+                      ? { ...cw, videoUri }
+                      : cw
+                  )
+                };
+              } else {
                 return { ...set, videoUri };
               }
-              return set;
-            })
-          };
-        }
+            }
+            return set;
+          })
+        };
       }
       return ex;
     }));
 
-    // Add video record to store
     const exercise = workoutExercises.find(ex => ex.id === recordingSetInfo.exerciseId);
-    let set: WorkoutSet | undefined;
+    const set = exercise?.sets.find(s => s.id === recordingSetInfo.setId);
 
-    if (isMultiClient && recordingSetInfo.clientId && exercise?.clientSets) {
-      const clientSet = exercise.clientSets.find(cs => cs.clientId === recordingSetInfo.clientId);
-      set = clientSet?.sets.find(s => s.id === recordingSetInfo.setId);
-    } else {
-      set = exercise?.sets.find(s => s.id === recordingSetInfo.setId);
-    }
+    if (set && exercise) {
+      const weight = isMultiClient && set.clientWeights
+        ? set.clientWeights.find(cw => cw.clientId === recordingSetInfo.clientId)?.weight || 0
+        : set.weight;
 
-    if (set && exercise && recordingSetInfo.clientId) {
       addVideoRecord({
         clientId: recordingSetInfo.clientId,
         exerciseId: exercise.exerciseId,
         workoutId: 'temp-workout-id',
         setId: recordingSetInfo.setId,
         videoUri,
-        weight: set.weight,
+        weight,
         reps: set.reps,
       });
     }
@@ -388,37 +355,26 @@ export default function WorkoutBuilderScreen() {
       return;
     }
 
-    const totalVolume = workoutExercises.reduce((total, ex) => {
-      if (isMultiClient && ex.clientSets) {
-        return total + ex.clientSets.reduce((clientTotal, clientSet) => {
-          return clientTotal + clientSet.sets.reduce((setTotal, set) => {
-            return setTotal + (set.weight * set.reps);
-          }, 0);
-        }, 0);
-      } else {
-        return total + ex.sets.reduce((setTotal, set) => {
-          return setTotal + (set.weight * set.reps);
-        }, 0);
-      }
-    }, 0);
-
     const duration = workoutStartTime 
       ? Math.floor((new Date().getTime() - workoutStartTime.getTime()) / 1000 / 60)
       : undefined;
 
     if (isMultiClient) {
-      // Save separate workouts for each client
       const selectedClients = clients.filter(c => clientIds.includes(c.id));
       
       selectedClients.forEach(client => {
-        const clientExercises = workoutExercises.map(ex => {
-          const clientSet = ex.clientSets?.find(cs => cs.clientId === client.id);
-          return {
-            ...ex,
-            sets: clientSet?.sets || [],
-            clientSets: undefined,
-          };
-        }).filter(ex => ex.sets.length > 0);
+        const clientExercises = workoutExercises.map(ex => ({
+          ...ex,
+          sets: ex.sets.map(set => {
+            const clientWeight = set.clientWeights?.find(cw => cw.clientId === client.id);
+            return {
+              ...set,
+              weight: clientWeight?.weight || 0,
+              videoUri: clientWeight?.videoUri,
+              clientWeights: undefined,
+            };
+          }),
+        }));
 
         const clientTotalVolume = clientExercises.reduce((total, ex) => {
           return total + ex.sets.reduce((setTotal, set) => {
@@ -441,6 +397,12 @@ export default function WorkoutBuilderScreen() {
         addWorkout(clientWorkout);
       });
     } else {
+      const totalVolume = workoutExercises.reduce((total, ex) => {
+        return total + ex.sets.reduce((setTotal, set) => {
+          return setTotal + (set.weight * set.reps);
+        }, 0);
+      }, 0);
+
       const workout = {
         clientId: clientIds[0],
         client: clients.find(c => c.id === clientIds[0]) || { id: clientIds[0], name: clientNames } as any,
@@ -463,7 +425,7 @@ export default function WorkoutBuilderScreen() {
     );
   };
 
-  const renderSet = (set: WorkoutSet, exerciseId: string, setIndex: number, clientId?: string) => (
+  const renderSet = (set: WorkoutSet, exerciseId: string, setIndex: number) => (
     <View key={set.id} style={styles.setRow}>
       <View style={styles.setNumberContainer}>
         <Text style={styles.setNumber}>{setIndex + 1}</Text>
@@ -471,24 +433,11 @@ export default function WorkoutBuilderScreen() {
       
       <View style={styles.setInputsContainer}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Weight</Text>
-          <TextInput
-            style={styles.setInput}
-            value={set.weight.toString()}
-            onChangeText={(text) => updateSet(exerciseId, set.id, 'weight', parseFloat(text) || 0, clientId)}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor="#9ca3af"
-            selectTextOnFocus
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Reps</Text>
           <TextInput
             style={styles.setInput}
             value={set.reps.toString()}
-            onChangeText={(text) => updateSet(exerciseId, set.id, 'reps', parseInt(text) || 0, clientId)}
+            onChangeText={(text) => updateSet(exerciseId, set.id, 'reps', parseInt(text) || 0)}
             keyboardType="numeric"
             placeholder="0"
             placeholderTextColor="#9ca3af"
@@ -501,7 +450,7 @@ export default function WorkoutBuilderScreen() {
           <TextInput
             style={styles.setInput}
             value={set.restTime?.toString() || '60'}
-            onChangeText={(text) => updateSet(exerciseId, set.id, 'restTime', parseInt(text) || 60, clientId)}
+            onChangeText={(text) => updateSet(exerciseId, set.id, 'restTime', parseInt(text) || 60)}
             keyboardType="numeric"
             placeholder="60"
             placeholderTextColor="#9ca3af"
@@ -510,28 +459,79 @@ export default function WorkoutBuilderScreen() {
         </View>
       </View>
 
+      {isMultiClient && set.clientWeights ? (
+        <View style={styles.multiClientWeightsContainer}>
+          {set.clientWeights.map((clientWeight) => {
+            const client = clients.find(c => c.id === clientWeight.clientId);
+            return (
+              <View key={clientWeight.clientId} style={styles.clientWeightRow}>
+                <Text style={styles.clientWeightLabel}>{client?.name || 'Client'}</Text>
+                <View style={styles.clientWeightInputContainer}>
+                  <TextInput
+                    style={styles.clientWeightInput}
+                    value={clientWeight.weight.toString()}
+                    onChangeText={(text) => updateClientWeight(exerciseId, set.id, clientWeight.clientId, parseFloat(text) || 0)}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#9ca3af"
+                    selectTextOnFocus
+                  />
+                  <Text style={styles.weightUnit}>kg</Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.clientVideoButton,
+                    clientWeight.videoUri && styles.clientVideoButtonActive
+                  ]}
+                  onPress={() => startVideoRecording(exerciseId, set.id, clientWeight.clientId)}
+                >
+                  <VideoIcon color={clientWeight.videoUri ? "#10b981" : "#6b7280"} size={16} />
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.singleClientWeightContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Weight</Text>
+            <TextInput
+              style={styles.setInput}
+              value={set.weight.toString()}
+              onChangeText={(text) => updateSet(exerciseId, set.id, 'weight', parseFloat(text) || 0)}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              selectTextOnFocus
+            />
+          </View>
+        </View>
+      )}
+
       <View style={styles.setActions}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.videoButton,
-            set.videoUri && styles.videoButtonActive
-          ]}
-          onPress={() => startVideoRecording(exerciseId, set.id, clientId)}
-        >
-          <VideoIcon color={set.videoUri ? "#10b981" : "#6b7280"} size={18} />
-        </TouchableOpacity>
+        {!isMultiClient && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.videoButton,
+              set.videoUri && styles.videoButtonActive
+            ]}
+            onPress={() => startVideoRecording(exerciseId, set.id, clientIds[0])}
+          >
+            <VideoIcon color={set.videoUri ? "#10b981" : "#6b7280"} size={18} />
+          </TouchableOpacity>
+        )}
         
         <TouchableOpacity
           style={[styles.actionButton, styles.completeButton]}
-          onPress={() => completeSet(exerciseId, set.id, clientId)}
+          onPress={() => completeSet(exerciseId, set.id)}
         >
           <Text style={styles.completeButtonText}>✓</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           style={[styles.actionButton, styles.removeSetButton]}
-          onPress={() => removeSet(exerciseId, set.id, clientId)}
+          onPress={() => removeSet(exerciseId, set.id)}
         >
           <Minus color="#ef4444" size={18} />
         </TouchableOpacity>
@@ -547,14 +547,12 @@ export default function WorkoutBuilderScreen() {
           <Text style={styles.exerciseCategory}>{item.exercise.category}</Text>
         </View>
         <View style={styles.exerciseActions}>
-          {!isMultiClient && (
-            <TouchableOpacity
-              style={styles.addSetButton}
-              onPress={() => addSet(item.id)}
-            >
-              <Plus color="#6366f1" size={16} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.addSetButton}
+            onPress={() => addSet(item.id)}
+          >
+            <Plus color="#6366f1" size={16} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.removeExerciseButton}
             onPress={() => removeExercise(item.id)}
@@ -564,59 +562,9 @@ export default function WorkoutBuilderScreen() {
         </View>
       </View>
 
-      {isMultiClient && item.clientSets ? (
-        <View style={styles.multiClientContainer}>
-          {/* Client selector for multi-client mode */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientTabs}>
-            {item.clientSets.map((clientSet) => (
-              <TouchableOpacity
-                key={clientSet.clientId}
-                style={[
-                  styles.clientTab,
-                  selectedClientId === clientSet.clientId && styles.clientTabActive
-                ]}
-                onPress={() => setSelectedClientId(clientSet.clientId)}
-              >
-                <Text style={[
-                  styles.clientTabText,
-                  selectedClientId === clientSet.clientId && styles.clientTabTextActive
-                ]}>
-                  {clientSet.clientName}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Show sets for selected client */}
-          {(() => {
-            const selectedClientSet = item.clientSets.find(cs => cs.clientId === selectedClientId);
-            if (!selectedClientSet) return null;
-
-            return (
-              <View style={styles.setsContainer}>
-                
-                {selectedClientSet.sets.map((set, index) => 
-                  renderSet(set, item.id, index, selectedClientSet.clientId)
-                )}
-                
-                <TouchableOpacity
-                  style={styles.addSetButtonFull}
-                  onPress={() => addSet(item.id, selectedClientSet.clientId)}
-                >
-                  <Plus color="#6366f1" size={16} />
-                  <Text style={styles.addSetButtonText}>Add Set for {selectedClientSet.clientName}</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })()
-          }
-        </View>
-      ) : (
-        <View style={styles.setsContainer}>
-          
-          {item.sets.map((set, index) => renderSet(set, item.id, index))}
-        </View>
-      )}
+      <View style={styles.setsContainer}>
+        {item.sets.map((set, index) => renderSet(set, item.id, index))}
+      </View>
     </View>
   );
 
@@ -648,7 +596,6 @@ export default function WorkoutBuilderScreen() {
     </TouchableOpacity>
   );
 
-  // Filter exercises based on search query
   const filteredExercises = exercises.filter(exercise => 
     exercise.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
     exercise.category.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
@@ -728,7 +675,7 @@ export default function WorkoutBuilderScreen() {
         >
           {isMultiClient ? <Users color="#6366f1" size={16} /> : <Plus color="#6366f1" size={16} />}
           <Text style={styles.addButtonText}>
-            {isMultiClient ? 'Add Multi-Client Exercise' : 'Add Exercise'}
+            {isMultiClient ? 'Add Exercise' : 'Add Exercise'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -751,7 +698,6 @@ export default function WorkoutBuilderScreen() {
         />
       )}
 
-      {/* Exercise Selection Modal */}
       <Modal
         visible={showExerciseModal}
         animationType="slide"
@@ -836,7 +782,6 @@ export default function WorkoutBuilderScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Template Selection Modal */}
       <Modal
         visible={showTemplateModal}
         animationType="slide"
@@ -873,7 +818,6 @@ export default function WorkoutBuilderScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Video Recorder Modal */}
       <VideoRecorder
         visible={showVideoRecorder}
         onClose={() => {
@@ -885,21 +829,17 @@ export default function WorkoutBuilderScreen() {
         exerciseName={recordingSetInfo?.exerciseName}
       />
 
-      {/* Add Custom Exercise Modal */}
       <AddExerciseModal
         visible={showAddCustomExerciseModal}
         onClose={() => setShowAddCustomExerciseModal(false)}
         onAdd={(exerciseData) => {
-          // Add to store and immediately use in workout
           addExerciseToStore(exerciseData);
           
-          // Find the newly added exercise (it will be the last one)
           const newExercise = {
             ...exerciseData,
             id: Date.now().toString(),
           } as Exercise;
           
-          // Add to current workout
           addExercise(newExercise);
           setShowAddCustomExerciseModal(false);
         }}
@@ -1050,21 +990,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: 16,
   },
-  setsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 12,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  setHeaderText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    flex: 1,
-  },
   setRow: {
     backgroundColor: colors.background,
     borderRadius: 12,
@@ -1120,6 +1045,63 @@ const styles = StyleSheet.create({
     height: 40,
     width: '100%',
     minWidth: 0,
+  },
+  multiClientWeightsContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  clientWeightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  clientWeightLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.text,
+    flex: 1,
+  },
+  clientWeightInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 8,
+    flex: 1,
+  },
+  clientWeightInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.text,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  weightUnit: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginLeft: 4,
+  },
+  clientVideoButton: {
+    backgroundColor: colors.background,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  clientVideoButtonActive: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  singleClientWeightContainer: {
+    marginBottom: 12,
   },
   setActions: {
     flexDirection: 'row',
@@ -1271,51 +1253,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
-  },
-  multiClientContainer: {
-    marginTop: 16,
-  },
-  clientTabs: {
-    marginBottom: 16,
-  },
-  clientTab: {
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clientTabActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  clientTabText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: colors.textSecondary,
-  },
-  clientTabTextActive: {
-    color: colors.white,
-  },
-  addSetButtonFull: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-  },
-  addSetButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: colors.primary,
-    marginLeft: 4,
   },
   createCustomButton: {
     flexDirection: 'row',
