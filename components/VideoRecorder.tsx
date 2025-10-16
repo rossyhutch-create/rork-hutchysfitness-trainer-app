@@ -91,6 +91,9 @@ export default function VideoRecorder({
   const [barPath, setBarPath] = useState<{ x: number; y: number; timestamp: number }[]>([]);
   const [currentVelocity, setCurrentVelocity] = useState<number>(0);
   const [repCount, setRepCount] = useState<number>(0);
+  const lastYRef = useRef<number | null>(null);
+  const directionRef = useRef<'up' | 'down' | null>(null);
+  const lastPeakTimeRef = useRef<number>(0);
   const [bodyKeypoints, setBodyKeypoints] = useState<any[]>([]);
   const [formAnalysis, setFormAnalysis] = useState<FormAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -214,10 +217,7 @@ export default function VideoRecorder({
         console.log('Video recorded successfully:', video.uri);
         setRecordedVideo(video.uri);
         
-        // Analyze form if enabled
-        if (trackingSettings.formAnalysis) {
-          await analyzeForm(video.uri);
-        }
+        // Live analysis was computed during recording; no separate post-processing step needed.
       } else {
         console.error('No video returned from recordAsync or missing URI');
         Alert.alert('Recording Error', 'Failed to save the recorded video. Please try again.');
@@ -312,20 +312,45 @@ export default function VideoRecorder({
         };
         
         setBarPath(prev => {
-          const newPath = [...prev.slice(-30), newPoint];
-          
-          // Calculate velocity if we have enough points
+          const newPath = [...prev.slice(-60), newPoint];
+
           if (newPath.length >= 2) {
             const lastPoint = newPath[newPath.length - 2];
+            const dy = newPoint.y - lastPoint.y;
             const distance = Math.sqrt(
-              Math.pow(newPoint.x - lastPoint.x, 2) + 
-              Math.pow(newPoint.y - lastPoint.y, 2)
+              Math.pow(newPoint.x - lastPoint.x, 2) +
+              Math.pow(dy, 2)
             );
-            const timeDiff = (newPoint.timestamp - lastPoint.timestamp) / 1000; // Convert to seconds
-            const velocity = distance / timeDiff / 100; // Convert to m/s (rough approximation)
+            const timeDiff = (newPoint.timestamp - lastPoint.timestamp) / 1000;
+            const velocity = timeDiff > 0 ? distance / timeDiff / 100 : 0;
             setCurrentVelocity(velocity);
+
+            const y = newPoint.y;
+            const lastY = lastYRef.current;
+            const now = newPoint.timestamp;
+            const amplitudeThreshold = 50;
+            const minRepInterval = 400;
+
+            if (lastY !== null) {
+              const currentDirection: 'up' | 'down' = y < lastY ? 'up' : 'down';
+              if (directionRef.current && currentDirection !== directionRef.current) {
+                const deltaY = Math.abs(y - lastY);
+                const sinceLastPeak = now - lastPeakTimeRef.current;
+                if (deltaY > amplitudeThreshold && sinceLastPeak > minRepInterval && currentDirection === 'down') {
+                  setRepCount(prevReps => prevReps + 1);
+                  lastPeakTimeRef.current = now;
+                }
+              }
+              directionRef.current = currentDirection;
+            }
+            lastYRef.current = y;
           }
-          
+
+          if (trackingSettings.formAnalysis) {
+            const analysis = computeLiveAnalysis(newPath, bodyKeypoints);
+            setFormAnalysis(analysis);
+          }
+
           return newPath;
         });
       }
@@ -385,6 +410,67 @@ export default function VideoRecorder({
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const computeLiveAnalysis = (
+    path: { x: number; y: number; timestamp: number }[],
+    keypoints: any[],
+  ): FormAnalysis => {
+    const points = path;
+    const body = keypoints;
+
+    let totalDistance = 0;
+    const velocities: number[] = [];
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+      const d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+      totalDistance += d;
+      const dt = (b.timestamp - a.timestamp) / 1000;
+      if (dt > 0) velocities.push(d / dt);
+    }
+    const avgV = velocities.length ? velocities.reduce((s, v) => s + v, 0) / velocities.length : 0;
+    const pathDeviation = (() => {
+      if (points.length < 2) return 0;
+      const start = points[0];
+      const end = points[points.length - 1];
+      const ideal = Math.abs(end.y - start.y) || 1;
+      return Math.max(0, ((totalDistance - ideal) / ideal) * 100);
+    })();
+
+    let shoulderLevel = 1;
+    let hipLevel = 1;
+    if (body?.length) {
+      const ls = body.find((p: any) => p.name === 'leftShoulder');
+      const rs = body.find((p: any) => p.name === 'rightShoulder');
+      const lh = body.find((p: any) => p.name === 'leftHip');
+      const rh = body.find((p: any) => p.name === 'rightHip');
+      if (ls && rs) shoulderLevel = Math.max(0, 1 - Math.abs(ls.y - rs.y) / 50);
+      if (lh && rh) hipLevel = Math.max(0, 1 - Math.abs(lh.y - rh.y) / 50);
+    }
+
+    const efficiency = Math.max(0, 1 - pathDeviation / 100);
+    const velocityScore = Math.min(1, avgV / 200);
+    const alignmentScore = (shoulderLevel + hipLevel) / 2;
+    const formScore = Math.round((0.5 * efficiency + 0.3 * alignmentScore + 0.2 * velocityScore) * 100) / 10;
+
+    const recs: string[] = [];
+    if (pathDeviation > 20) recs.push('Reduce horizontal drift to improve bar path');
+    if (alignmentScore < 0.8) recs.push('Keep shoulders and hips level');
+    if (avgV < 50) recs.push('Accelerate through the concentric phase');
+    if (recs.length === 0) recs.push('Nice control and path consistency');
+
+    return {
+      barPath: points,
+      bodyAlignment: [{
+        shoulderLevel,
+        hipLevel,
+        kneeAlignment: 0.9,
+        backAngle: 85,
+      }],
+      formScore,
+      recommendations: recs,
+    };
   };
 
   const toggleTrackingSetting = (setting: keyof TrackingSettings) => {
