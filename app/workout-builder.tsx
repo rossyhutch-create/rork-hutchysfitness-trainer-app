@@ -149,6 +149,7 @@ export default function WorkoutBuilderScreen() {
           clientWeights: isMultiClient ? clientIds.map(clientId => ({
             clientId,
             weight: 0,
+            reps: 10,
           })) : undefined,
         }
       ],
@@ -176,6 +177,7 @@ export default function WorkoutBuilderScreen() {
             return {
               clientId,
               weight: lastClientWeight?.weight || 0,
+              reps: lastClientWeight?.reps || 10,
             };
           }) : undefined,
         };
@@ -233,6 +235,28 @@ export default function WorkoutBuilderScreen() {
     }));
   };
 
+  const updateClientReps = (exerciseId: string, setId: string, clientId: string, reps: number) => {
+    setWorkoutExercises(workoutExercises.map(ex => {
+      if (ex.id === exerciseId) {
+        return {
+          ...ex,
+          sets: ex.sets.map(set => {
+            if (set.id === setId && set.clientWeights) {
+              return {
+                ...set,
+                clientWeights: set.clientWeights.map(cw => 
+                  cw.clientId === clientId ? { ...cw, reps } : cw
+                )
+              };
+            }
+            return set;
+          })
+        };
+      }
+      return ex;
+    }));
+  };
+
   const completeSet = (exerciseId: string, setId: string) => {
     const exercise = workoutExercises.find(ex => ex.id === exerciseId);
     const set = exercise?.sets.find(s => s.id === setId);
@@ -240,7 +264,7 @@ export default function WorkoutBuilderScreen() {
     if (set && exercise) {
       if (isMultiClient && set.clientWeights) {
         set.clientWeights.forEach(clientWeight => {
-          const volume = clientWeight.weight * set.reps;
+          const volume = clientWeight.weight * clientWeight.reps;
           const hasNewPR = checkAndAddPersonalRecord(
             clientWeight.clientId,
             exercise.exerciseId,
@@ -329,6 +353,10 @@ export default function WorkoutBuilderScreen() {
       const weight = isMultiClient && set.clientWeights
         ? set.clientWeights.find(cw => cw.clientId === recordingSetInfo.clientId)?.weight || 0
         : set.weight;
+      
+      const reps = isMultiClient && set.clientWeights
+        ? set.clientWeights.find(cw => cw.clientId === recordingSetInfo.clientId)?.reps || 0
+        : set.reps;
 
       addVideoRecord({
         clientId: recordingSetInfo.clientId,
@@ -337,7 +365,7 @@ export default function WorkoutBuilderScreen() {
         setId: recordingSetInfo.setId,
         videoUri,
         weight,
-        reps: set.reps,
+        reps,
       });
     }
 
@@ -369,6 +397,7 @@ export default function WorkoutBuilderScreen() {
             const clientWeight = set.clientWeights?.find(cw => cw.clientId === client.id);
             return {
               ...set,
+              reps: clientWeight?.reps || set.reps,
               weight: clientWeight?.weight || 0,
               videoUri: clientWeight?.videoUri,
               clientWeights: undefined,
@@ -466,27 +495,41 @@ export default function WorkoutBuilderScreen() {
             return (
               <View key={clientWeight.clientId} style={styles.clientWeightRow}>
                 <Text style={styles.clientWeightLabel}>{client?.name || 'Client'}</Text>
-                <View style={styles.clientWeightInputContainer}>
-                  <TextInput
-                    style={styles.clientWeightInput}
-                    value={clientWeight.weight.toString()}
-                    onChangeText={(text) => updateClientWeight(exerciseId, set.id, clientWeight.clientId, parseFloat(text) || 0)}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor="#9ca3af"
-                    selectTextOnFocus
-                  />
-                  <Text style={styles.weightUnit}>kg</Text>
+                <View style={styles.clientInputsRow}>
+                  <View style={styles.clientWeightInputContainer}>
+                    <Text style={styles.clientInputLabel}>kg</Text>
+                    <TextInput
+                      style={styles.clientWeightInput}
+                      value={clientWeight.weight.toString()}
+                      onChangeText={(text) => updateClientWeight(exerciseId, set.id, clientWeight.clientId, parseFloat(text) || 0)}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      selectTextOnFocus
+                    />
+                  </View>
+                  <View style={styles.clientWeightInputContainer}>
+                    <Text style={styles.clientInputLabel}>reps</Text>
+                    <TextInput
+                      style={styles.clientWeightInput}
+                      value={clientWeight.reps.toString()}
+                      onChangeText={(text) => updateClientReps(exerciseId, set.id, clientWeight.clientId, parseInt(text) || 0)}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      selectTextOnFocus
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.clientVideoButton,
+                      clientWeight.videoUri && styles.clientVideoButtonActive
+                    ]}
+                    onPress={() => startVideoRecording(exerciseId, set.id, clientWeight.clientId)}
+                  >
+                    <VideoIcon color={clientWeight.videoUri ? "#10b981" : "#6b7280"} size={16} />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={[
-                    styles.clientVideoButton,
-                    clientWeight.videoUri && styles.clientVideoButtonActive
-                  ]}
-                  onPress={() => startVideoRecording(exerciseId, set.id, clientWeight.clientId)}
-                >
-                  <VideoIcon color={clientWeight.videoUri ? "#10b981" : "#6b7280"} size={16} />
-                </TouchableOpacity>
               </View>
             );
           })}
@@ -1055,39 +1098,43 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   clientWeightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    flexDirection: 'column',
+    marginBottom: 12,
   },
   clientWeightLabel: {
     fontSize: 14,
     fontWeight: '600' as const,
     color: colors.text,
-    flex: 1,
+    marginBottom: 8,
   },
-  clientWeightInputContainer: {
+  clientInputsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  clientWeightInputContainer: {
+    flex: 1,
     backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 8,
-    flex: 1,
+    paddingVertical: 8,
+  },
+  clientInputLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+    fontWeight: '600' as const,
+    textTransform: 'uppercase',
   },
   clientWeightInput: {
-    flex: 1,
     fontSize: 16,
     fontWeight: '600' as const,
     color: colors.text,
     textAlign: 'center',
-    paddingVertical: 8,
-  },
-  weightUnit: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginLeft: 4,
+    padding: 0,
   },
   clientVideoButton: {
     backgroundColor: colors.background,

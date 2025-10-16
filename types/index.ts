@@ -48,6 +48,7 @@ export type ExerciseCategory =
 export interface ClientSetData {
   clientId: string;
   weight: number;
+  reps: number;
   videoUri?: string;
 }
 
