@@ -448,12 +448,13 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     
     let newPRs: PersonalRecord[] = [];
     let hasNewPR = false;
+    const baseTimestamp = Date.now();
     
     // Check max weight PR
     const maxWeightPR = clientPRs.find(pr => pr.type === 'max_weight');
     if (!maxWeightPR || weight > maxWeightPR.value) {
       newPRs.push({
-        id: `${Date.now()}_weight`,
+        id: `${baseTimestamp}_${Math.random().toString(36).substr(2, 9)}_weight`,
         clientId,
         exerciseId,
         type: 'max_weight',
@@ -469,7 +470,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const maxVolumePR = clientPRs.find(pr => pr.type === 'max_volume');
     if (!maxVolumePR || volume > maxVolumePR.value) {
       newPRs.push({
-        id: `${Date.now()}_volume`,
+        id: `${baseTimestamp}_${Math.random().toString(36).substr(2, 9)}_volume`,
         clientId,
         exerciseId,
         type: 'max_volume',
