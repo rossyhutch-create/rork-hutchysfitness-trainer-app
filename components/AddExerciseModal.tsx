@@ -159,7 +159,7 @@ export default function AddExerciseModal({ visible, onClose, onAdd }: AddExercis
                     style={styles.removeButton}
                     onPress={() => removeMuscleGroup(index)}
                   >
-                    <Minus color="#ef4444" size={16} />
+                    <Minus color="#991b1b" size={16} />
                   </TouchableOpacity>
                 )}
               </View>

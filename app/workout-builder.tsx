@@ -533,7 +533,7 @@ export default function WorkoutBuilderScreen() {
           style={[styles.actionButton, styles.removeSetButton]}
           onPress={() => removeSet(exerciseId, set.id)}
         >
-          <Minus color="#ef4444" size={18} />
+          <Minus color="#ffffff" size={18} />
         </TouchableOpacity>
       </View>
     </View>
@@ -557,7 +557,7 @@ export default function WorkoutBuilderScreen() {
             style={styles.removeExerciseButton}
             onPress={() => removeExercise(item.id)}
           >
-            <X color="#ef4444" size={16} />
+            <X color="#ffffff" size={16} />
           </TouchableOpacity>
         </View>
       </View>
