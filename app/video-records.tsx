@@ -22,12 +22,14 @@ import {
   User,
   Dumbbell,
   Trash2,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFitnessStore } from '@/store/fitness-store';
 import { colors } from '@/constants/branding';
 import BarPathTracker from '@/components/BarPathTracker';
+import SkeletalTracker from '@/components/SkeletalTracker';
 import type { VideoRecord, Client, Exercise } from '@/types';
 
 export default function VideoRecordsScreen() {
@@ -37,6 +39,7 @@ export default function VideoRecordsScreen() {
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('all');
   const [showBarPathTracker, setShowBarPathTracker] = useState<boolean>(false);
+  const [showSkeletalTracker, setShowSkeletalTracker] = useState<boolean>(false);
   const [trackingVideo, setTrackingVideo] = useState<VideoRecord | null>(null);
   const insets = useSafeAreaInsets();
 
@@ -108,6 +111,19 @@ export default function VideoRecordsScreen() {
     setTrackingVideo(null);
   };
 
+  const handleSkeletalTracking = (record: VideoRecord) => {
+    setTrackingVideo(record);
+    setShowSkeletalTracker(true);
+    if (selectedVideo?.id === record.id) {
+      closeVideoModal();
+    }
+  };
+
+  const closeSkeletalTracker = () => {
+    setShowSkeletalTracker(false);
+    setTrackingVideo(null);
+  };
+
   const handleSaveAnalysis = (analysis: any) => {
     console.log('Bar path analysis saved:', analysis);
     // Here you could save the analysis to your store or backend
@@ -156,6 +172,15 @@ export default function VideoRecordsScreen() {
           }}
         >
           <TrendingUp color="#6366f1" size={16} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.trackButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleSkeletalTracking(item);
+          }}
+        >
+          <Activity color="#10b981" size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.deleteButton}
@@ -292,6 +317,12 @@ export default function VideoRecordsScreen() {
                   <TrendingUp color="#6366f1" size={20} />
                 </TouchableOpacity>
                 <TouchableOpacity
+                  style={styles.modalActionButton}
+                  onPress={() => handleSkeletalTracking(selectedVideo)}
+                >
+                  <Activity color="#10b981" size={20} />
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={styles.modalDeleteButton}
                   onPress={() => handleDeleteVideo(selectedVideo)}
                 >
@@ -385,6 +416,17 @@ export default function VideoRecordsScreen() {
           exerciseName={getExerciseName(trackingVideo.exerciseId)}
           clientName={getClientName(trackingVideo.clientId)}
           onSaveAnalysis={handleSaveAnalysis}
+        />
+      )}
+
+      {/* Skeletal Tracker Modal */}
+      {trackingVideo && (
+        <SkeletalTracker
+          visible={showSkeletalTracker}
+          onClose={closeSkeletalTracker}
+          videoUri={trackingVideo.videoUri}
+          exerciseName={getExerciseName(trackingVideo.exerciseId)}
+          clientName={getClientName(trackingVideo.clientId)}
         />
       )}
     </View>
