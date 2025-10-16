@@ -210,7 +210,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const { currentUserId } = get();
     const newClient: Client = {
       ...clientData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
     };
     
@@ -251,7 +251,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const { currentUserId } = get();
     const newPhoto: ClientPhoto = {
       ...photoData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
     
     const updatedClients = get().clients.map(client => {
@@ -292,7 +292,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const { currentUserId } = get();
     const newWeight: BodyWeight = {
       ...weightData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
     
     const updatedClients = get().clients.map(client => {
@@ -355,7 +355,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const { currentUserId } = get();
     const newExercise: Exercise = {
       ...exerciseData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
     
     const updatedExercises = [...get().exercises, newExercise];
@@ -394,7 +394,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   addWorkout: (workoutData) => {
     const newWorkout: Workout = {
       ...workoutData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
     
     const updatedWorkouts = [...get().workouts, newWorkout];
@@ -419,7 +419,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   addWorkoutTemplate: (templateData) => {
     const newTemplate: WorkoutTemplate = {
       ...templateData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
     };
     
@@ -514,7 +514,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   addVideoRecord: (videoData) => {
     const newVideoRecord: VideoRecord = {
       ...videoData,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       date: new Date().toISOString(),
     };
     
