@@ -164,10 +164,15 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
         AsyncStorage.getItem('fitness_measurement_settings'),
       ]);
       
+      const workoutsData: Workout[] = cloudWorkouts || (localWorkouts ? JSON.parse(localWorkouts) : []);
+      const uniqueWorkouts: Workout[] = Array.from(
+        new Map(workoutsData.map((w: Workout) => [w.id, w])).values()
+      );
+      
       set({
         clients: cloudClients || (localClients ? JSON.parse(localClients) : []),
         exercises: cloudExercises || (localExercises ? JSON.parse(localExercises) : DEFAULT_EXERCISES),
-        workouts: cloudWorkouts || (localWorkouts ? JSON.parse(localWorkouts) : []),
+        workouts: uniqueWorkouts,
         personalRecords: cloudPRs || (localPRs ? JSON.parse(localPRs) : []),
         workoutTemplates: cloudTemplates || (localTemplates ? JSON.parse(localTemplates) : []),
         videoRecords: cloudVideos || (localVideos ? JSON.parse(localVideos) : []),
@@ -392,6 +397,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   },
   
   addWorkout: (workoutData) => {
+    const { currentUserId } = get();
     const newWorkout: Workout = {
       ...workoutData,
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -400,23 +406,38 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const updatedWorkouts = [...get().workouts, newWorkout];
     set({ workouts: updatedWorkouts });
     AsyncStorage.setItem('fitness_workouts', JSON.stringify(updatedWorkouts));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedWorkouts, 'fitness_workouts');
+    }
   },
   
   updateWorkout: (id, updates) => {
+    const { currentUserId } = get();
     const updatedWorkouts = get().workouts.map(workout =>
       workout.id === id ? { ...workout, ...updates } : workout
     );
     set({ workouts: updatedWorkouts });
     AsyncStorage.setItem('fitness_workouts', JSON.stringify(updatedWorkouts));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedWorkouts, 'fitness_workouts');
+    }
   },
   
   deleteWorkout: (id) => {
+    const { currentUserId } = get();
     const updatedWorkouts = get().workouts.filter(workout => workout.id !== id);
     set({ workouts: updatedWorkouts });
     AsyncStorage.setItem('fitness_workouts', JSON.stringify(updatedWorkouts));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedWorkouts, 'fitness_workouts');
+    }
   },
   
   addWorkoutTemplate: (templateData) => {
+    const { currentUserId } = get();
     const newTemplate: WorkoutTemplate = {
       ...templateData,
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -426,31 +447,44 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const updatedTemplates = [...get().workoutTemplates, newTemplate];
     set({ workoutTemplates: updatedTemplates });
     AsyncStorage.setItem('fitness_workout_templates', JSON.stringify(updatedTemplates));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedTemplates, 'fitness_workout_templates');
+    }
   },
   
   updateWorkoutTemplate: (id, updates) => {
+    const { currentUserId } = get();
     const updatedTemplates = get().workoutTemplates.map(template =>
       template.id === id ? { ...template, ...updates } : template
     );
     set({ workoutTemplates: updatedTemplates });
     AsyncStorage.setItem('fitness_workout_templates', JSON.stringify(updatedTemplates));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedTemplates, 'fitness_workout_templates');
+    }
   },
   
   deleteWorkoutTemplate: (id) => {
+    const { currentUserId } = get();
     const updatedTemplates = get().workoutTemplates.filter(template => template.id !== id);
     set({ workoutTemplates: updatedTemplates });
     AsyncStorage.setItem('fitness_workout_templates', JSON.stringify(updatedTemplates));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedTemplates, 'fitness_workout_templates');
+    }
   },
   
   checkAndAddPersonalRecord: (clientId, exerciseId, weight, volume, workoutId, videoUri) => {
-    const { personalRecords } = get();
+    const { personalRecords, currentUserId } = get();
     const clientPRs = personalRecords.filter(pr => pr.clientId === clientId && pr.exerciseId === exerciseId);
     
     let newPRs: PersonalRecord[] = [];
     let hasNewPR = false;
     const baseTimestamp = Date.now();
     
-    // Check max weight PR
     const maxWeightPR = clientPRs.find(pr => pr.type === 'max_weight');
     if (!maxWeightPR || weight > maxWeightPR.value) {
       newPRs.push({
@@ -466,7 +500,6 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
       hasNewPR = true;
     }
     
-    // Check max volume PR
     const maxVolumePR = clientPRs.find(pr => pr.type === 'max_volume');
     if (!maxVolumePR || volume > maxVolumePR.value) {
       newPRs.push({
@@ -489,6 +522,10 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
       
       set({ personalRecords: updatedPRs });
       AsyncStorage.setItem('fitness_personal_records', JSON.stringify(updatedPRs));
+      
+      if (currentUserId) {
+        syncWithCloud(currentUserId, updatedPRs, 'fitness_personal_records');
+      }
     }
     
     return hasNewPR;
@@ -512,6 +549,7 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   },
   
   addVideoRecord: (videoData) => {
+    const { currentUserId } = get();
     const newVideoRecord: VideoRecord = {
       ...videoData,
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -521,6 +559,10 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
     const updatedVideoRecords = [...get().videoRecords, newVideoRecord];
     set({ videoRecords: updatedVideoRecords });
     AsyncStorage.setItem('fitness_video_records', JSON.stringify(updatedVideoRecords));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedVideoRecords, 'fitness_video_records');
+    }
   },
   
   getClientVideoRecords: (clientId, exerciseId) => {
@@ -531,15 +573,25 @@ export const useFitnessStore = create<FitnessStore>((set, get) => ({
   },
   
   deleteVideoRecord: (id) => {
+    const { currentUserId } = get();
     const updatedVideoRecords = get().videoRecords.filter(vr => vr.id !== id);
     set({ videoRecords: updatedVideoRecords });
     AsyncStorage.setItem('fitness_video_records', JSON.stringify(updatedVideoRecords));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedVideoRecords, 'fitness_video_records');
+    }
   },
   
   updateMeasurementSettings: (settings) => {
+    const { currentUserId } = get();
     const updatedSettings = { ...get().measurementSettings, ...settings };
     set({ measurementSettings: updatedSettings });
     AsyncStorage.setItem('fitness_measurement_settings', JSON.stringify(updatedSettings));
+    
+    if (currentUserId) {
+      syncWithCloud(currentUserId, updatedSettings, 'fitness_measurement_settings');
+    }
   },
   
   convertWeight: (weight, from, to) => {
