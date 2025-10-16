@@ -460,33 +460,52 @@ export default function WorkoutBuilderScreen() {
         <Text style={styles.setNumber}>{setIndex + 1}</Text>
       </View>
       
-      <View style={styles.setInputsContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Reps</Text>
-          <TextInput
-            style={styles.setInput}
-            value={set.reps.toString()}
-            onChangeText={(text) => updateSet(exerciseId, set.id, 'reps', parseInt(text) || 0)}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor="#9ca3af"
-            selectTextOnFocus
-          />
-        </View>
+      {!isMultiClient && (
+        <View style={styles.setInputsContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Reps</Text>
+            <TextInput
+              style={styles.setInput}
+              value={set.reps.toString()}
+              onChangeText={(text) => updateSet(exerciseId, set.id, 'reps', parseInt(text) || 0)}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              selectTextOnFocus
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Rest</Text>
-          <TextInput
-            style={styles.setInput}
-            value={set.restTime?.toString() || '60'}
-            onChangeText={(text) => updateSet(exerciseId, set.id, 'restTime', parseInt(text) || 60)}
-            keyboardType="numeric"
-            placeholder="60"
-            placeholderTextColor="#9ca3af"
-            selectTextOnFocus
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Rest</Text>
+            <TextInput
+              style={styles.setInput}
+              value={set.restTime?.toString() || '60'}
+              onChangeText={(text) => updateSet(exerciseId, set.id, 'restTime', parseInt(text) || 60)}
+              keyboardType="numeric"
+              placeholder="60"
+              placeholderTextColor="#9ca3af"
+              selectTextOnFocus
+            />
+          </View>
         </View>
-      </View>
+      )}
+
+      {isMultiClient && (
+        <View style={styles.setInputsContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Rest</Text>
+            <TextInput
+              style={styles.setInput}
+              value={set.restTime?.toString() || '60'}
+              onChangeText={(text) => updateSet(exerciseId, set.id, 'restTime', parseInt(text) || 60)}
+              keyboardType="numeric"
+              placeholder="60"
+              placeholderTextColor="#9ca3af"
+              selectTextOnFocus
+            />
+          </View>
+        </View>
+      )}
 
       {isMultiClient && set.clientWeights ? (
         <View style={styles.multiClientWeightsContainer}>
