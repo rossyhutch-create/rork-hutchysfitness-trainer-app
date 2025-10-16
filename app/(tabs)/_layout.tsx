@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Users, Dumbbell, Activity, TrendingUp, Settings } from "lucide-react-native";
+import { Users, Dumbbell, Activity, TrendingUp, Settings, Calendar } from "lucide-react-native";
 import React from "react";
 
 import { colors } from "@/constants/branding";
@@ -58,7 +58,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TrendingUp color={color} size={24} />,
         }}
       />
-
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Calendar",
+          tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
+        }}
+      />
       <Tabs.Screen
         name="settings"
         options={{
