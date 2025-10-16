@@ -56,6 +56,7 @@ export default function TabLayout() {
         options={{
           title: "Calendar",
           tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
