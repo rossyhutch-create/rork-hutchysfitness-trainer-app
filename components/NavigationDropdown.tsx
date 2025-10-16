@@ -8,7 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { Users, Dumbbell, Activity, TrendingUp, Settings, ChevronDown } from 'lucide-react-native';
+import { Users, Dumbbell, Activity, Calendar, TrendingUp, Settings, ChevronDown } from 'lucide-react-native';
 import { colors } from '@/constants/branding';
 
 type NavItem = {
@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'clients', title: 'Clients', icon: Users, path: '/clients' },
   { id: 'workouts', title: 'Workouts', icon: Dumbbell, path: '/workouts' },
   { id: 'exercises', title: 'Exercises', icon: Activity, path: '/exercises' },
+  { id: 'calendar', title: 'Calendar', icon: Calendar, path: '/calendar' },
   { id: 'progress', title: 'Progress', icon: TrendingUp, path: '/progress' },
   { id: 'settings', title: 'Settings', icon: Settings, path: '/settings' },
 ];
