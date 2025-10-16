@@ -9,20 +9,24 @@ import {
   Platform,
   TextInput,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFitnessStore } from '@/store/fitness-store';
-import { ArrowLeft, Calendar, Clock, User, Share2, MessageSquare, X } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, User, Share2, MessageSquare, X, BookmarkPlus } from 'lucide-react-native';
 import { colors } from '@/constants/branding';
 
 export default function WorkoutDetails() {
   const router = useRouter();
   const { workoutId } = useLocalSearchParams();
-  const { workouts, clients, measurementSettings, updateWorkout } = useFitnessStore();
+  const { workouts, clients, measurementSettings, updateWorkout, addWorkoutTemplate } = useFitnessStore();
   const [commentModalVisible, setCommentModalVisible] = useState<boolean>(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<string>('');
+  const [saveAsTemplateModalVisible, setSaveAsTemplateModalVisible] = useState<boolean>(false);
+  const [templateName, setTemplateName] = useState<string>('');
+  const [templateDescription, setTemplateDescription] = useState<string>('');
   
   const workout = workouts.find(w => w.id === workoutId);
   const client = workout ? clients.find(c => c.id === workout.clientId) : null;
@@ -35,7 +39,7 @@ export default function WorkoutDetails() {
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Workout Not Found</Text>
-          <View style={styles.placeholder} />
+          <View style={{ width: 80 }} />
         </View>
       </SafeAreaView>
     );
@@ -158,6 +162,57 @@ export default function WorkoutDetails() {
     }
   };
 
+  const handleSaveAsTemplate = () => {
+    if (!workout) return;
+    setTemplateName(workout.name);
+    setTemplateDescription('');
+    setSaveAsTemplateModalVisible(true);
+  };
+
+  const handleConfirmSaveAsTemplate = () => {
+    if (!workout) return;
+
+    if (!templateName.trim()) {
+      Alert.alert('Error', 'Please enter a template name');
+      return;
+    }
+
+    const templateExercises = workout.exercises.map(ex => ({
+      id: `${Date.now()}_${ex.id}`,
+      exerciseId: ex.exerciseId,
+      exercise: ex.exercise,
+      sets: ex.sets.map((set, idx) => ({
+        id: `${Date.now()}_${idx}`,
+        reps: set.reps,
+        weight: 0,
+        restTime: set.restTime || 60,
+      })),
+      notes: ex.notes,
+    }));
+
+    addWorkoutTemplate({
+      name: templateName.trim(),
+      description: templateDescription.trim() || undefined,
+      exercises: templateExercises,
+    });
+
+    setSaveAsTemplateModalVisible(false);
+    setTemplateName('');
+    setTemplateDescription('');
+
+    Alert.alert(
+      'Template Saved',
+      `"${templateName.trim()}" has been saved as a template. You can now use it for any client.`,
+      [
+        { text: 'OK' },
+        { 
+          text: 'View Templates', 
+          onPress: () => router.push('/templates')
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -165,9 +220,14 @@ export default function WorkoutDetails() {
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Workout Details</Text>
-        <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-          <Share2 size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleSaveAsTemplate} style={styles.actionButton}>
+            <BookmarkPlus size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
+            <Share2 size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -296,6 +356,71 @@ export default function WorkoutDetails() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={saveAsTemplateModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSaveAsTemplateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Save as Template</Text>
+              <TouchableOpacity 
+                onPress={() => setSaveAsTemplateModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              Save this workout as a reusable template that you can use with any client.
+            </Text>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Template Name</Text>
+              <TextInput
+                style={styles.input}
+                value={templateName}
+                onChangeText={setTemplateName}
+                placeholder="Enter template name"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Description (Optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={templateDescription}
+                onChangeText={setTemplateDescription}
+                placeholder="Describe this workout template..."
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                onPress={() => setSaveAsTemplateModalVisible(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={handleConfirmSaveAsTemplate}
+                style={[styles.modalButton, styles.saveButton]}
+              >
+                <Text style={styles.saveButtonText}>Save Template</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -323,11 +448,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
-  shareButton: {
-    padding: 8,
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  placeholder: {
-    width: 40,
+  actionButton: {
+    padding: 8,
   },
   content: {
     flex: 1,
@@ -520,5 +646,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  textArea: {
+    minHeight: 80,
   },
 });
