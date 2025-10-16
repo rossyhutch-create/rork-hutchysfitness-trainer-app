@@ -52,17 +52,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="progress"
-        options={{
-          title: "Progress",
-          tabBarIcon: ({ color }) => <TrendingUp color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
         name="calendar"
         options={{
           title: "Calendar",
           tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: "Progress",
+          tabBarIcon: ({ color }) => <TrendingUp color={color} size={24} />,
         }}
       />
       <Tabs.Screen
