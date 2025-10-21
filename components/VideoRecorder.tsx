@@ -80,6 +80,7 @@ export default function VideoRecorder({
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const videoRef = useRef<Video>(null);
+  const lastStatusRef = useRef<any>(null);
   
   // Form tracking state
   const [trackingSettings, setTrackingSettings] = useState<TrackingSettings>({
@@ -522,11 +523,21 @@ export default function VideoRecorder({
   const togglePlayback = async () => {
     if (videoRef.current) {
       try {
+        const status = lastStatusRef.current;
         if (isPlaying) {
           await videoRef.current.pauseAsync();
-        } else {
-          await videoRef.current.playAsync();
+          return;
         }
+        if (status?.isLoaded) {
+          const pos = status.positionMillis ?? 0;
+          const dur = status.durationMillis ?? 0;
+          const atEnd = status.didJustFinish || (dur > 0 && pos >= Math.max(0, dur - 250));
+          if (atEnd) {
+            await videoRef.current.setPositionAsync(0);
+          }
+        }
+        await videoRef.current.playAsync();
+        setIsPlaying(true);
       } catch (error) {
         console.error('Error toggling playback:', error);
       }
@@ -675,12 +686,12 @@ export default function VideoRecorder({
                 isLooping={false}
                 useNativeControls={false}
                 onPlaybackStatusUpdate={(status: any) => {
+                  lastStatusRef.current = status;
                   if (status.isLoaded) {
                     if ('didJustFinish' in status && status.didJustFinish) {
                       setIsPlaying(false);
-                    }
-                    if ('isPlaying' in status) {
-                      setIsPlaying(status.isPlaying);
+                    } else if ('isPlaying' in status) {
+                      setIsPlaying(status.isPlaying ?? false);
                     }
                   }
                 }}

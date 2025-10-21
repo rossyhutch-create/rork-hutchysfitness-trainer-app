@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,8 @@ export default function VideoRecordsScreen() {
   const { videoRecords, clients, exercises, loadData, deleteVideoRecord } = useFitnessStore();
   const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const videoRef = useRef<Video>(null);
+  const lastStatusRef = useRef<any>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('all');
   const [showBarPathTracker, setShowBarPathTracker] = useState<boolean>(false);
@@ -73,9 +75,33 @@ export default function VideoRecordsScreen() {
     setIsPlaying(false);
   };
 
-  const togglePlayback = () => {
-    console.log('Toggle playback, current state:', isPlaying);
-    setIsPlaying(!isPlaying);
+  const togglePlayback = async () => {
+    try {
+      if (!videoRef.current) {
+        setIsPlaying(prev => !prev);
+        return;
+      }
+      const status = lastStatusRef.current;
+      if (status?.isLoaded) {
+        const pos = status.positionMillis ?? 0;
+        const dur = status.durationMillis ?? 0;
+        const atEnd = status.didJustFinish || (dur > 0 && pos >= Math.max(0, dur - 250));
+        if (isPlaying) {
+          await videoRef.current.pauseAsync();
+          return;
+        }
+        if (atEnd) {
+          await videoRef.current.setPositionAsync(0);
+        }
+        await videoRef.current.playAsync();
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(prev => !prev);
+      }
+    } catch (e) {
+      console.log('togglePlayback error', e);
+      setIsPlaying(false);
+    }
   };
 
   const handleDeleteVideo = (record: VideoRecord) => {
@@ -334,6 +360,7 @@ export default function VideoRecordsScreen() {
             <View style={styles.videoContainer}>
               {Platform.OS !== 'web' ? (
                 <Video
+                  ref={videoRef}
                   source={{ uri: selectedVideo.videoUri }}
                   style={styles.video}
                   resizeMode={ResizeMode.CONTAIN}
@@ -341,12 +368,12 @@ export default function VideoRecordsScreen() {
                   isLooping={false}
                   useNativeControls={false}
                   onPlaybackStatusUpdate={(status: any) => {
+                    lastStatusRef.current = status;
                     if (status.isLoaded) {
                       if ('didJustFinish' in status && status.didJustFinish) {
                         setIsPlaying(false);
-                      }
-                      if ('isPlaying' in status) {
-                        setIsPlaying(status.isPlaying);
+                      } else if ('isPlaying' in status) {
+                        setIsPlaying(status.isPlaying ?? false);
                       }
                     }
                   }}
